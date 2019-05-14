@@ -18,6 +18,5 @@ FROM mcr.microsoft.com/dotnet/core/runtime:2.2
 WORKDIR /app
 
 COPY --from=build-env /app/libfuzzer-proto-dotnet /app/out ./
-COPY corpus/ ./corpus
 
 ENTRYPOINT ["./libfuzzer-proto-dotnet", "--target_path=./Roslyn.Fuzz", "corpus"]
