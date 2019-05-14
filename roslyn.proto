@@ -1,0 +1,65 @@
+syntax = "proto3";
+package roslyn;
+
+message VarRef {
+  int32 varnum = 1;
+}
+
+message Lvalue {
+  VarRef varref = 1;
+}
+
+message Const {
+  int32 val = 1;
+}
+
+message BinaryOp {
+  enum Op {
+    PLUS = 0;
+    MINUS = 1;
+    MUL = 2;
+    DIV = 3;
+    MOD = 4;
+    XOR = 5;
+    AND = 6;
+    OR = 7;
+  };
+
+  Op op = 1;
+  Rvalue left = 2;
+  Rvalue right = 3;
+}
+
+message Rvalue {
+  oneof rvalue_oneof {
+    VarRef varref = 1;
+    Const cons = 2;
+    BinaryOp binop = 3;
+  }
+}
+
+message AssignmentStatement {
+  Lvalue lvalue = 1;
+  Rvalue rvalue = 2;
+}
+
+message IfElse {
+  Rvalue cond = 1;
+  StatementSeq if_body = 2;
+  StatementSeq else_body = 3;
+}
+
+message Statement {
+  oneof stmt_oneof {
+    AssignmentStatement assignment = 1;
+    IfElse ifelse = 2;
+  }
+}
+
+message StatementSeq {
+  repeated Statement statements = 1;
+}
+
+message Function {
+  StatementSeq statements = 1;
+}
