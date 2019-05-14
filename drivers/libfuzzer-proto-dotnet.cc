@@ -215,8 +215,8 @@ extern "C" size_t LLVMFuzzerCustomCrossOver(
 	unsigned int seed)
 {
 	using protobuf_mutator::libfuzzer::CustomProtoCrossOver;
-	Function input1;
-	Function input2;
+	roslyn::Function input1;
+	roslyn::Function input2;
 
 	return CustomProtoCrossOver(true, data1, size1, data2, size2, out, max_out_size, seed, &input1, &input2);
 }

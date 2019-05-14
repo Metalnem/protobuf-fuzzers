@@ -5,6 +5,8 @@
 [Bb]in/
 [Oo]bj/
 
-# afl-fuzz
+# libFuzzer
 Binaries/
 Findings/
+libfuzzer-proto-dotnet
+libfuzzer-proto-dotnet.zip
