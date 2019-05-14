@@ -4,6 +4,8 @@ WORKDIR /app
 ENV PATH="${PATH}:/root/.dotnet/tools"
 RUN dotnet tool install --global SharpFuzz.CommandLine
 
+RUN wget -qO - https://github.com/Metalnem/roslyn-proto-fuzzer/releases/latest/download/libfuzzer-proto-dotnet.tar.gz | tar -xz
+
 COPY src/*.csproj ./
 RUN dotnet restore
 
@@ -15,8 +17,7 @@ RUN dotnet publish -r linux-x64 -c release -o out \
 FROM mcr.microsoft.com/dotnet/core/runtime:2.2
 WORKDIR /app
 
-COPY --from=build-env /app/out ./
+COPY --from=build-env /app/libfuzzer-proto-dotnet /app/out ./
 COPY corpus/ ./corpus
-COPY drivers/libfuzzer-proto-dotnet ./
 
 ENTRYPOINT ["./libfuzzer-proto-dotnet", "--target_path=./Roslyn.Fuzz", "corpus"]
