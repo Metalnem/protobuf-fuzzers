@@ -20,10 +20,24 @@ namespace Roslyn.Fuzz
 			"CS0220", // The operation overflows at compile time in checked mode
 		};
 
-		public static void Main(string[] args)
+		public static unsafe void Main(string[] args)
 		{
 			using (var memory = new MemoryStream(10_000_000))
 			{
+				CSharpCompilationOptions options;
+				PortableExecutableReference coreLib;
+
+				fixed (byte* sharedMem = new byte[65_536])
+				{
+					SharpFuzz.Common.Trace.SharedMem = sharedMem;
+
+					options = new CSharpCompilationOptions(OutputKind.ConsoleApplication)
+						.WithConcurrentBuild(false)
+						.WithDeterministic(true);
+
+					coreLib = MetadataReference.CreateFromFile(typeof(object).Assembly.Location);
+				}
+
 				Fuzzer.LibFuzzer.Run(span =>
 				{
 					string code = null;
@@ -39,13 +53,9 @@ namespace Roslyn.Fuzz
 
 					var tree = CSharpSyntaxTree.ParseText(code);
 
-					var options = new CSharpCompilationOptions(OutputKind.ConsoleApplication)
-						.WithConcurrentBuild(false)
-						.WithDeterministic(true);
-
 					var compilation = CSharpCompilation.Create("Roslyn.Fuzz.dll")
 						.WithOptions(options)
-						.AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+						.AddReferences(coreLib)
 						.AddSyntaxTrees(tree);
 
 					memory.Seek(0, SeekOrigin.Begin);
