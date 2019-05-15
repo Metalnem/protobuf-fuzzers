@@ -22,40 +22,41 @@ namespace Roslyn.Fuzz
 
 		public static void Main(string[] args)
 		{
-			Fuzzer.LibFuzzer.Run(span =>
+			using (var memory = new MemoryStream(10_000_000))
 			{
-				string code = null;
-
-				try
+				Fuzzer.LibFuzzer.Run(span =>
 				{
-					code = CodeBuilder.Build(Function.Parser.ParseFrom(span.ToArray()));
-				}
-				catch
-				{
-					return;
-				}
+					string code = null;
 
-				var tree = CSharpSyntaxTree.ParseText(code);
+					try
+					{
+						code = CodeBuilder.Build(Function.Parser.ParseFrom(span.ToArray()));
+					}
+					catch
+					{
+						return;
+					}
 
-				var options = new CSharpCompilationOptions(OutputKind.ConsoleApplication)
-					.WithConcurrentBuild(false)
-					.WithDeterministic(true);
+					var tree = CSharpSyntaxTree.ParseText(code);
 
-				var compilation = CSharpCompilation.Create("Roslyn.Fuzz.dll")
-					.WithOptions(options)
-					.AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
-					.AddSyntaxTrees(tree);
+					var options = new CSharpCompilationOptions(OutputKind.ConsoleApplication)
+						.WithConcurrentBuild(false)
+						.WithDeterministic(true);
 
-				using (var memory = new MemoryStream())
-				{
+					var compilation = CSharpCompilation.Create("Roslyn.Fuzz.dll")
+						.WithOptions(options)
+						.AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+						.AddSyntaxTrees(tree);
+
+					memory.Seek(0, SeekOrigin.Begin);
 					var result = compilation.Emit(memory);
 
 					if (!result.Success && !result.Diagnostics.Any(diagnostic => ignore.Contains(diagnostic.Id)))
 					{
 						throw new Exception(FormatError(tree, result));
 					}
-				}
-			});
+				});
+			}
 		}
 
 		private static string FormatError(SyntaxTree syntaxTree, EmitResult emitResult)
