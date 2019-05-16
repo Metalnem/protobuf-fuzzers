@@ -7,7 +7,6 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Formatting;
-using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.Formatting;
 using SharpFuzz;
 
@@ -23,6 +22,16 @@ namespace Roslyn.Fuzz
 
 		public static unsafe void Main(string[] args)
 		{
+			if (args.Length == 2 && args[0] == "print")
+			{
+				var bytes = File.ReadAllBytes(args[1]);
+				var code = CodeBuilder.Build(Function.Parser.ParseFrom(bytes));
+				var syntaxTree = CSharpSyntaxTree.ParseText(code);
+
+				Console.WriteLine(FormatError(syntaxTree));
+				return;
+			}
+
 			using (var memory = new MemoryStream(10_000_000))
 			{
 				CSharpCompilationOptions debugOptions;

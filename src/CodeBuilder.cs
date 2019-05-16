@@ -42,6 +42,7 @@ $@"namespace Roslyn.Run
 				case BinaryOp.Types.Op.Xor: code.Append('^'); break;
 				case BinaryOp.Types.Op.And: code.Append('&'); break;
 				case BinaryOp.Types.Op.Or: code.Append('|'); break;
+				default: code.Append('+'); break;
 			}
 
 			Emit(ThrowIfNull(value.Right));
@@ -72,6 +73,7 @@ $@"namespace Roslyn.Run
 				case CompareOp.Types.Op.Ge: code.Append(">="); break;
 				case CompareOp.Types.Op.Lt: code.Append("<"); break;
 				case CompareOp.Types.Op.Gt: code.Append(">"); break;
+				default: code.Append("=="); break;
 			}
 
 			Emit(ThrowIfNull(value.Right));
@@ -87,6 +89,7 @@ $@"namespace Roslyn.Run
 			{
 				case LogicalOp.Types.Op.And: code.Append("&&"); break;
 				case LogicalOp.Types.Op.Or: code.Append("||"); break;
+				default: code.Append("&&"); break;
 			}
 
 			Emit(ThrowIfNull(value.Right));
@@ -116,9 +119,19 @@ $@"namespace Roslyn.Run
 			code.Append("if(");
 			Emit(ThrowIfNull(value.Cond));
 			code.Append("){");
-			Emit(ThrowIfNull(value.IfBody));
+
+			if (value.IfBody != null)
+			{
+				Emit(value.IfBody);
+			}
+
 			code.Append("}else{");
-			Emit(ThrowIfNull(value.ElseBody));
+
+			if (value.ElseBody != null)
+			{
+				Emit(value.ElseBody);
+			}
+
 			code.Append("}");
 		}
 
