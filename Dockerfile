@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/core/sdk:2.2 AS build-env
+FROM mcr.microsoft.com/dotnet/core/sdk:3.0 AS build-env
 WORKDIR /app
 
 ENV PATH="${PATH}:/root/.dotnet/tools"
@@ -14,7 +14,7 @@ RUN dotnet publish -c release -o out \
 	&& sharpfuzz out/Microsoft.CodeAnalysis.dll \
 	&& sharpfuzz out/Microsoft.CodeAnalysis.CSharp.dll
 
-FROM mcr.microsoft.com/dotnet/core/runtime:2.2
+FROM mcr.microsoft.com/dotnet/core/runtime:3.0
 WORKDIR /app
 
 COPY --from=build-env /app/libfuzzer-proto-dotnet /app/out ./
