@@ -31,7 +31,7 @@ namespace Roslyn.Fuzz
 				{
 					SharpFuzz.Common.Trace.SharedMem = sharedMem;
 
-					options = new CSharpCompilationOptions(OutputKind.ConsoleApplication)
+					options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
 						.WithConcurrentBuild(false)
 						.WithDeterministic(true);
 
@@ -59,6 +59,8 @@ namespace Roslyn.Fuzz
 						.AddSyntaxTrees(tree);
 
 					memory.Seek(0, SeekOrigin.Begin);
+					memory.SetLength(0);
+
 					var result = compilation.Emit(memory);
 
 					if (!result.Success && !result.Diagnostics.Any(diagnostic => ignore.Contains(diagnostic.Id)))

@@ -16,10 +16,9 @@ namespace Roslyn.Fuzz
 			return
 $@"namespace Roslyn.Fuzz
 {{
-	public class Program
+	public class Foo
 	{{
-		public static void Main(string[] args) {{ Foo(new int[100]); }}
-		private static void Foo(int[] a) {{ {builder.code.ToString()} }}
+		private static void Bar(int[] a) {{ {builder.code.ToString()} }}
 	}}
 }}";
 		}
