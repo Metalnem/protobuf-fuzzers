@@ -14,16 +14,16 @@ namespace Roslyn.Fuzz
 			builder.Emit(function);
 
 			return
-$@"namespace Roslyn.Fuzz
+$@"namespace Roslyn.Run
 {{
-	public class Foo
+	public static class Foo
 	{{
-		private static void Bar(int[] a) {{ {builder.code.ToString()} }}
+		public static void Bar(int[] a) {{ {builder.code.ToString()} }}
 	}}
 }}";
 		}
 
-		private void Emit(VarRef value) => code.Append($"a[{value.Varnum % 100}]");
+		private void Emit(VarRef value) => code.Append($"a[{Math.Abs(value.Varnum) % 100}]");
 		private void Emit(Lvalue value) => Emit(ThrowIfNull(value.Varref));
 		private void Emit(Const value) => code.Append($"({value.Val})");
 

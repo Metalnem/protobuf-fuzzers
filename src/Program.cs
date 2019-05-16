@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -24,19 +25,21 @@ namespace Roslyn.Fuzz
 		{
 			using (var memory = new MemoryStream(10_000_000))
 			{
-				CSharpCompilationOptions options;
+				CSharpCompilationOptions debugOptions;
+				CSharpCompilationOptions releaseOptions;
 				PortableExecutableReference coreLib;
 
 				fixed (byte* sharedMem = new byte[65_536])
 				{
 					SharpFuzz.Common.Trace.SharedMem = sharedMem;
 
-					options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
-						.WithConcurrentBuild(false)
-						.WithDeterministic(true);
-
+					debugOptions = GetCompilationOptions(OptimizationLevel.Debug);
+					releaseOptions = GetCompilationOptions(OptimizationLevel.Release);
 					coreLib = MetadataReference.CreateFromFile(typeof(object).Assembly.Location);
 				}
+
+				var debugVars = Enumerable.Range(0, 100).ToArray();
+				var releaseVars = Enumerable.Range(0, 100).ToArray();
 
 				Fuzzer.LibFuzzer.Run(span =>
 				{
@@ -51,31 +54,79 @@ namespace Roslyn.Fuzz
 						return;
 					}
 
-					var tree = CSharpSyntaxTree.ParseText(code);
+					var syntaxTree = CSharpSyntaxTree.ParseText(code);
 
-					var compilation = CSharpCompilation.Create("Roslyn.Fuzz.dll")
+					CompileAndRun(debugOptions, syntaxTree, debugVars);
+					CompileAndRun(releaseOptions, syntaxTree, releaseVars);
+
+					if (!debugVars.SequenceEqual(releaseVars))
+					{
+						throw new Exception(FormatError(syntaxTree));
+					}
+				});
+
+				void CompileAndRun(CSharpCompilationOptions options, SyntaxTree syntaxTree, int[] vars)
+				{
+					var compilation = CSharpCompilation.Create("Roslyn.Run.dll")
 						.WithOptions(options)
 						.AddReferences(coreLib)
-						.AddSyntaxTrees(tree);
+						.AddSyntaxTrees(syntaxTree);
 
 					memory.Seek(0, SeekOrigin.Begin);
 					memory.SetLength(0);
 
 					var result = compilation.Emit(memory);
+					memory.Seek(0, SeekOrigin.Begin);
 
-					if (!result.Success && !result.Diagnostics.Any(diagnostic => ignore.Contains(diagnostic.Id)))
+					if (result.Success)
 					{
-						throw new Exception(FormatError(tree, result));
+						var context = new CollectibleAssemblyLoadContext();
+
+						try
+						{
+							var assembly = context.LoadFromStream(memory);
+							var type = assembly.GetType("Roslyn.Run.Foo");
+							var method = type.GetMethod("Bar");
+
+							method.Invoke(null, new object[] { vars });
+						}
+						catch (TargetInvocationException ex) when (ex.InnerException is DivideByZeroException) { }
+						catch (TargetInvocationException ex) when (ex.InnerException is OverflowException) { }
+						catch (Exception ex)
+						{
+							throw new Exception(FormatError(syntaxTree), ex);
+						}
+						finally
+						{
+							context.Unload();
+						}
 					}
-				});
+					else if (!result.Diagnostics.Any(diagnostic => ignore.Contains(diagnostic.Id)))
+					{
+						throw new Exception(FormatError(syntaxTree, result.Diagnostics));
+					}
+				}
 			}
 		}
 
-		private static string FormatError(SyntaxTree syntaxTree, EmitResult emitResult)
+		private static CSharpCompilationOptions GetCompilationOptions(OptimizationLevel optimizationLevel)
+		{
+			return new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+				.WithConcurrentBuild(false)
+				.WithDeterministic(true)
+				.WithOptimizationLevel(optimizationLevel);
+		}
+
+		private static string FormatError(SyntaxTree syntaxTree)
+		{
+			return FormatError(syntaxTree, Enumerable.Empty<Diagnostic>());
+		}
+
+		private static string FormatError(SyntaxTree syntaxTree, IEnumerable<Diagnostic> diagnostics)
 		{
 			StringBuilder sb = new StringBuilder();
 
-			foreach (var diagnostic in emitResult.Diagnostics)
+			foreach (var diagnostic in diagnostics)
 			{
 				sb.AppendLine(diagnostic.ToString());
 			}
