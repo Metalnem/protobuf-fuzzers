@@ -59,6 +59,50 @@ $@"namespace Roslyn.Run
 			}
 		}
 
+		private void Emit(CompareOp value)
+		{
+			code.Append('(');
+			Emit(ThrowIfNull(value.Left));
+
+			switch (value.Op)
+			{
+				case CompareOp.Types.Op.Eq: code.Append("=="); break;
+				case CompareOp.Types.Op.Ne: code.Append("!="); break;
+				case CompareOp.Types.Op.Le: code.Append("<="); break;
+				case CompareOp.Types.Op.Ge: code.Append(">="); break;
+				case CompareOp.Types.Op.Lt: code.Append("<"); break;
+				case CompareOp.Types.Op.Gt: code.Append(">"); break;
+			}
+
+			Emit(ThrowIfNull(value.Right));
+			code.Append(')');
+		}
+
+		private void Emit(LogicalOp value)
+		{
+			code.Append('(');
+			Emit(ThrowIfNull(value.Left));
+
+			switch (value.Op)
+			{
+				case LogicalOp.Types.Op.And: code.Append("&&"); break;
+				case LogicalOp.Types.Op.Or: code.Append("||"); break;
+			}
+
+			Emit(ThrowIfNull(value.Right));
+			code.Append(')');
+		}
+
+		private void Emit(Condition value)
+		{
+			switch (value.CondOneofCase)
+			{
+				case Condition.CondOneofOneofCase.None: throw new ArgumentNullException();
+				case Condition.CondOneofOneofCase.Compare: Emit(ThrowIfNull(value.Compare)); break;
+				case Condition.CondOneofOneofCase.Logical: Emit(ThrowIfNull(value.Logical)); break;
+			}
+		}
+
 		private void Emit(AssignmentStatement value)
 		{
 			Emit(ThrowIfNull(value.Lvalue));
@@ -69,9 +113,9 @@ $@"namespace Roslyn.Run
 
 		private void Emit(IfElse value)
 		{
-			code.Append("if((");
+			code.Append("if(");
 			Emit(ThrowIfNull(value.Cond));
-			code.Append(")>0){");
+			code.Append("){");
 			Emit(ThrowIfNull(value.IfBody));
 			code.Append("}else{");
 			Emit(ThrowIfNull(value.ElseBody));

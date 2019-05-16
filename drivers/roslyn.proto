@@ -38,13 +38,46 @@ message Rvalue {
   }
 }
 
+message CompareOp {
+  enum Op {
+    EQ = 0;
+    NE = 1;
+    LE = 2;
+    GE = 3;
+    LT = 4;
+    GT = 5;
+  }
+
+  Op op = 1;
+  Rvalue left = 2;
+  Rvalue right = 3;
+}
+
+message LogicalOp {
+  enum Op {
+    AND = 0;
+    OR = 1;
+  };
+
+  Op op = 1;
+  Condition left = 2;
+  Condition right = 3;
+}
+
+message Condition {
+  oneof cond_oneof {
+    CompareOp compare = 1;
+	LogicalOp logical = 2;
+  }
+}
+
 message AssignmentStatement {
   Lvalue lvalue = 1;
   Rvalue rvalue = 2;
 }
 
 message IfElse {
-  Rvalue cond = 1;
+  Condition cond = 1;
   StatementSeq if_body = 2;
   StatementSeq else_body = 3;
 }
