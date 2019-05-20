@@ -7,10 +7,10 @@ RUN dotnet tool install --global SharpFuzz.CommandLine
 RUN wget -qO - https://github.com/Metalnem/roslyn-proto-fuzzer/releases/latest/download/libfuzzer-proto-dotnet.tar.gz | tar -xz
 
 COPY src/*.csproj ./
-RUN dotnet restore
+RUN dotnet restore -r linux-x64
 
 COPY src/*.cs ./
-RUN dotnet publish -c release -o out \
+RUN dotnet publish -r linux-x64 --no-restore -c release -o out \
 	&& sharpfuzz out/Microsoft.CodeAnalysis.dll \
 	&& sharpfuzz out/Microsoft.CodeAnalysis.CSharp.dll
 
