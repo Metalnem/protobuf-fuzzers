@@ -34,19 +34,6 @@ namespace Roslyn.Fuzz
 
 			using (var memory = new MemoryStream(10_000_000))
 			{
-				CSharpCompilationOptions debugOptions;
-				CSharpCompilationOptions releaseOptions;
-				PortableExecutableReference coreLib;
-
-				fixed (byte* sharedMem = new byte[65_536])
-				{
-					SharpFuzz.Common.Trace.SharedMem = sharedMem;
-
-					debugOptions = GetCompilationOptions(OptimizationLevel.Debug);
-					releaseOptions = GetCompilationOptions(OptimizationLevel.Release);
-					coreLib = MetadataReference.CreateFromFile(typeof(object).Assembly.Location);
-				}
-
 				var debugVars = Enumerable.Range(0, 100).ToArray();
 				var releaseVars = Enumerable.Range(0, 100).ToArray();
 
@@ -63,7 +50,11 @@ namespace Roslyn.Fuzz
 						return;
 					}
 
-					var syntaxTree = CSharpSyntaxTree.ParseText(code);
+					var parseOptions = new CSharpParseOptions();
+					var syntaxTree = CSharpSyntaxTree.ParseText(code, parseOptions);
+
+					var debugOptions = GetCompilationOptions(OptimizationLevel.Debug);
+					var releaseOptions = GetCompilationOptions(OptimizationLevel.Release);
 
 					CompileAndRun(debugOptions, syntaxTree, debugVars);
 					CompileAndRun(releaseOptions, syntaxTree, releaseVars);
@@ -76,6 +67,8 @@ namespace Roslyn.Fuzz
 
 				void CompileAndRun(CSharpCompilationOptions options, SyntaxTree syntaxTree, int[] vars)
 				{
+					var coreLib = MetadataReference.CreateFromFile(typeof(object).Assembly.Location);
+
 					var compilation = CSharpCompilation.Create("Roslyn.Run.dll")
 						.WithOptions(options)
 						.AddReferences(coreLib)
