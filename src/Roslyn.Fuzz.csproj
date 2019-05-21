@@ -9,7 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.7.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.0.0" />
-    <PackageReference Include="SharpFuzz" Version="1.4.3" />
+    <PackageReference Include="SharpFuzz" Version="1.5.0" />
   </ItemGroup>
 
 </Project>
