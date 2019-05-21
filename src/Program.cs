@@ -20,7 +20,7 @@ namespace Roslyn.Fuzz
 			"CS0220", // The operation overflows at compile time in checked mode
 		};
 
-		public static unsafe void Main(string[] args)
+		public static void Main(string[] args)
 		{
 			if (args.Length == 2 && args[0] == "print")
 			{
