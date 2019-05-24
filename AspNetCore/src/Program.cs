@@ -9,12 +9,14 @@ using Microsoft.Extensions.Logging;
 using SharpFuzz;
 using Microsoft.AspNetCore.Hosting;
 using System.Text;
+using System.Collections.Generic;
+using System.Threading;
 
 namespace AspNetCore.Fuzz
 {
 	public class Program
 	{
-		private static readonly byte[] request = Encoding.UTF8.GetBytes("GET / HTTP1.1\nHost: localhost\n\n");
+		private static readonly byte[] request = Encoding.UTF8.GetBytes("GET / HTTP/1.1\r\nHost: localhost\r\nconnection:close\r\nr\n");
 		private static readonly byte[] clientBuffer = new byte[10_000_000];
 		private static readonly byte[] serverBuffer = new byte[10_000_000];
 
@@ -23,6 +25,7 @@ namespace AspNetCore.Fuzz
 			fixed (byte* trace = new byte[65_536])
 			{
 				SharpFuzz.Common.Trace.SharedMem = trace;
+				SharpFuzz.Common.Trace.OnBranch = (id, name) => { };
 
 				WebHost.CreateDefaultBuilder(args)
 					.UseKestrel(options =>
@@ -37,8 +40,15 @@ namespace AspNetCore.Fuzz
 			}
 		}
 
-		private static void Fuzz()
+		private static unsafe void Fuzz()
 		{
+			var trace = new List<(int, string)>();
+
+			SharpFuzz.Common.Trace.OnBranch = (id, name) =>
+			{
+				trace.Add((id, name));
+			};
+
 			Fuzzer.Run(stream =>
 			{
 				using (var client = new TcpClient("localhost", 5000))
@@ -47,6 +57,8 @@ namespace AspNetCore.Fuzz
 					network.Write(request, 0, request.Length);
 					network.Read(clientBuffer, 0, clientBuffer.Length);
 				}
+
+				Interlocked.Exchange(ref trace, new List<(int, string)>());
 			});
 		}
 
