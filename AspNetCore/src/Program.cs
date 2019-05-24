@@ -16,7 +16,7 @@ namespace AspNetCore.Fuzz
 {
 	public class Program
 	{
-		private static readonly byte[] request = Encoding.UTF8.GetBytes("GET / HTTP/1.1\r\nHost: localhost\r\nconnection:close\r\nr\n");
+		private static readonly byte[] request = Encoding.UTF8.GetBytes("GET / HTTP/1.1\r\nHost: localhost\r\n\r\n");
 		private static readonly byte[] clientBuffer = new byte[10_000_000];
 		private static readonly byte[] serverBuffer = new byte[10_000_000];
 
@@ -49,17 +49,17 @@ namespace AspNetCore.Fuzz
 				trace.Add((id, name));
 			};
 
-			Fuzzer.Run(stream =>
+			using (var client = new TcpClient("localhost", 5000))
+			using (var network = client.GetStream())
 			{
-				using (var client = new TcpClient("localhost", 5000))
-				using (var network = client.GetStream())
+				Fuzzer.Run(stream =>
 				{
 					network.Write(request, 0, request.Length);
 					network.Read(clientBuffer, 0, clientBuffer.Length);
-				}
 
-				Interlocked.Exchange(ref trace, new List<(int, string)>());
-			});
+					Interlocked.Exchange(ref trace, new List<(int, string)>());
+				});
+			}
 		}
 
 		private class Startup
