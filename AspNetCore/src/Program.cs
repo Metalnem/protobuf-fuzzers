@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Net.Sockets;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Builder;
@@ -8,15 +7,14 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using SharpFuzz;
 using Microsoft.AspNetCore.Hosting;
-using System.Text;
 using System.Collections.Generic;
 using System.Threading;
+using System.Net.Http;
 
 namespace AspNetCore.Fuzz
 {
 	public class Program
 	{
-		private static readonly byte[] request = Encoding.UTF8.GetBytes("GET / HTTP/1.1\r\nHost: localhost\r\n\r\n");
 		private static readonly byte[] clientBuffer = new byte[10_000_000];
 		private static readonly byte[] serverBuffer = new byte[10_000_000];
 
@@ -46,18 +44,30 @@ namespace AspNetCore.Fuzz
 
 			SharpFuzz.Common.Trace.OnBranch = (id, name) =>
 			{
-				trace.Add((id, name));
+				lock (trace)
+				{
+					trace.Add((id, name));
+				}
 			};
 
-			using (var client = new TcpClient("localhost", 5000))
-			using (var network = client.GetStream())
+			using (var client = new HttpClient())
 			{
 				Fuzzer.Run(stream =>
 				{
-					network.Write(request, 0, request.Length);
-					network.Read(clientBuffer, 0, clientBuffer.Length);
+					stream.Read(clientBuffer, 0, clientBuffer.Length);
 
-					Interlocked.Exchange(ref trace, new List<(int, string)>());
+					using (var response = client.GetAsync("http://localhost:5000/").GetAwaiter().GetResult())
+					{
+						response.EnsureSuccessStatusCode();
+					}
+
+					List<(int, string)> copy;
+
+					lock (trace)
+					{
+						copy = new List<(int, string)>(trace);
+						trace.Clear();
+					}
 				});
 			}
 		}
