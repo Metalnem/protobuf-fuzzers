@@ -16,4 +16,4 @@ Work in progress.
 
 - [Structure-Aware Fuzzing with libFuzzer](https://github.com/google/fuzzer-test-suite/blob/master/tutorial/structure-aware-fuzzing.md)
 - [Getting Started with libprotobuf-mutator (LPM) in Chromium](https://chromium.googlesource.com/chromium/src/testing/libfuzzer/+/HEAD/libprotobuf-mutator.md)
-- [Structure-aware fuzzing for Clang and LLVM with libprotobuf-mutator]: https://www.youtube.com/watch?v=U60hC16HEDY
+- [Structure-aware fuzzing for Clang and LLVM with libprotobuf-mutator](https://www.youtube.com/watch?v=U60hC16HEDY)
