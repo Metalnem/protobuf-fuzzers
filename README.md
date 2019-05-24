@@ -10,6 +10,7 @@ Work in progress.
 
 ## Projects
 
+- [ASP.NET Core](https://github.com/Metalnem/protobuf-fuzzers/tree/master/AspNetCore)
 - [Roslyn](https://github.com/Metalnem/protobuf-fuzzers/tree/master/Roslyn)
 
 ## Resources
