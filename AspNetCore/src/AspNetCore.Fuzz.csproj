@@ -9,7 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.7.0" />
     <PackageReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="SharpFuzz" Version="1.5.0" />
+    <PackageReference Include="SharpFuzz" Version="1.6.0" />
 
     <PackageReference Include="Grpc.Tools" Version="1.21.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
