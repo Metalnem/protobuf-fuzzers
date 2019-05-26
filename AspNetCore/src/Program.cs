@@ -1,15 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
+using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Logging;
 using SharpFuzz;
-using Microsoft.AspNetCore.Hosting;
-using System.Collections.Generic;
-using System.Threading;
-using System.Net.Http;
 
 namespace AspNetCore.Fuzz
 {
@@ -28,8 +29,13 @@ namespace AspNetCore.Fuzz
 				WebHost.CreateDefaultBuilder(args)
 					.UseKestrel(options =>
 					{
-						options.Limits.MaxConcurrentConnections = 1;
-						options.Limits.RequestHeadersTimeout = TimeSpan.FromMilliseconds(100);
+						options.Limits.MinRequestBodyDataRate = null;
+						options.Limits.MinResponseDataRate = null;
+
+						typeof(KestrelServerOptions).Assembly
+							.GetType("Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure.Heartbeat")
+							.GetField("Interval", BindingFlags.Public | BindingFlags.Static)
+							.SetValue(null, TimeSpan.FromDays(10));
 					})
 					.UseStartup<Startup>()
 					.ConfigureLogging(logging => logging.ClearProviders())
