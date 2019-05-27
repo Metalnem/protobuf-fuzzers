@@ -7,10 +7,9 @@ enum Method {
   POST = 2;
   PUT = 3;
   DELETE = 4;
-  CONNECT = 5;
-  OPTIONS = 6;
-  TRACE = 7;
-  PATCH = 8;
+  OPTIONS = 5;
+  TRACE = 6;
+  PATCH = 7;
 }
 
 message Header {

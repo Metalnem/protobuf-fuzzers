@@ -4,6 +4,7 @@ using System.IO;
 using System.Net.Http;
 using System.Reflection;
 using System.Threading.Tasks;
+using Http;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -44,7 +45,7 @@ namespace AspNetCore.Fuzz
 			}
 		}
 
-		private static unsafe void Fuzz()
+		private static void Fuzz()
 		{
 			var trace = new List<(int, string)>();
 
@@ -60,9 +61,21 @@ namespace AspNetCore.Fuzz
 			{
 				Fuzzer.Run(stream =>
 				{
-					stream.Read(clientBuffer, 0, clientBuffer.Length);
+					int size = stream.Read(clientBuffer, 0, clientBuffer.Length);
+					Request message;
 
-					using (var response = client.GetAsync("http://localhost:5000/").GetAwaiter().GetResult())
+					try
+					{
+						message = Request.Parser.ParseFrom(clientBuffer, 0, size);
+					}
+					catch
+					{
+						return;
+					}
+
+					var request = Convert(message);
+
+					using (var response = client.SendAsync(request).GetAwaiter().GetResult())
 					{
 						response.EnsureSuccessStatusCode();
 					}
@@ -76,6 +89,39 @@ namespace AspNetCore.Fuzz
 					}
 				});
 			}
+		}
+
+		private static HttpMethod Convert(Method method)
+		{
+			switch (method)
+			{
+				case Method.Get: return HttpMethod.Get;
+				case Method.Head: return HttpMethod.Head;
+				case Method.Post: return HttpMethod.Post;
+				case Method.Put: return HttpMethod.Put;
+				case Method.Delete: return HttpMethod.Delete;
+				case Method.Options: return HttpMethod.Options;
+				case Method.Trace: return HttpMethod.Trace;
+				case Method.Patch: return HttpMethod.Patch;
+				default: return HttpMethod.Get;
+			}
+		}
+
+		private static HttpRequestMessage Convert(Request message)
+		{
+			var request = new HttpRequestMessage(
+				Convert(message.Method),
+				"http://localhost:5000/"
+			);
+
+			foreach (var header in message.Headers)
+			{
+				request.Headers.Add(header.Name, header.Value);
+			}
+
+			request.Content = new ByteArrayContent(message.Body.ToByteArray());
+
+			return request;
 		}
 
 		private class Startup
