@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net.Http;
+using System.Net.Sockets;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 using Http;
 using Microsoft.AspNetCore;
@@ -17,6 +18,9 @@ namespace AspNetCore.Fuzz
 {
 	public class Program
 	{
+		private static readonly byte[] request = Encoding.UTF8.GetBytes("GET / HTTP/1.1\r\nHost: localhost\r\n\r\n");
+		private static readonly byte[] responseEnd = new byte[] { 48, 13, 10, 13, 10 };
+
 		private static readonly byte[] clientBuffer = new byte[10_000_000];
 		private static readonly byte[] serverBuffer = new byte[10_000_000];
 
@@ -57,27 +61,33 @@ namespace AspNetCore.Fuzz
 				}
 			};
 
-			using (var client = new HttpClient())
+			using (var client = new TcpClient("localhost", 80))
+			using (var network = client.GetStream())
 			{
-				Fuzzer.Run(stream =>
+				Fuzzer.LibFuzzer.Run(span =>
 				{
-					int size = stream.Read(clientBuffer, 0, clientBuffer.Length);
 					Request message;
 
 					try
 					{
-						message = Request.Parser.ParseFrom(clientBuffer, 0, size);
+						message = Request.Parser.ParseFrom(span.ToArray());
 					}
 					catch
 					{
 						return;
 					}
 
-					var request = Convert(message);
+					network.Write(request, 0, request.Length);
+					int read = 0;
 
-					using (var response = client.SendAsync(request).GetAwaiter().GetResult())
+					for (; ; )
 					{
-						response.EnsureSuccessStatusCode();
+						read += network.Read(clientBuffer, read, clientBuffer.Length - read);
+
+						if (clientBuffer.AsSpan(0, read).EndsWith(responseEnd))
+						{
+							break;
+						}
 					}
 
 					List<(int, string)> copy;
@@ -89,39 +99,6 @@ namespace AspNetCore.Fuzz
 					}
 				});
 			}
-		}
-
-		private static HttpMethod Convert(Method method)
-		{
-			switch (method)
-			{
-				case Method.Get: return HttpMethod.Get;
-				case Method.Head: return HttpMethod.Head;
-				case Method.Post: return HttpMethod.Post;
-				case Method.Put: return HttpMethod.Put;
-				case Method.Delete: return HttpMethod.Delete;
-				case Method.Options: return HttpMethod.Options;
-				case Method.Trace: return HttpMethod.Trace;
-				case Method.Patch: return HttpMethod.Patch;
-				default: return HttpMethod.Get;
-			}
-		}
-
-		private static HttpRequestMessage Convert(Request message)
-		{
-			var request = new HttpRequestMessage(
-				Convert(message.Method),
-				"http://localhost:5000/"
-			);
-
-			foreach (var header in message.Headers)
-			{
-				request.Headers.Add(header.Name, header.Value);
-			}
-
-			request.Content = new ByteArrayContent(message.Body.ToByteArray());
-
-			return request;
 		}
 
 		private class Startup
