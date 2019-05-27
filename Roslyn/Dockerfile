@@ -43,10 +43,14 @@ WORKDIR /app
 ENV PATH="${PATH}:/root/.dotnet/tools"
 RUN dotnet tool install --global SharpFuzz.CommandLine
 
+WORKDIR /app/src/
+
 COPY src/*.csproj ./
 RUN dotnet restore -r linux-x64
 
 COPY src/*.cs ./
+COPY build/roslyn.proto /app/build/
+
 RUN dotnet publish -r linux-x64 --no-restore -c release -o out \
 	&& sharpfuzz out/Microsoft.CodeAnalysis.dll \
 	&& sharpfuzz out/Microsoft.CodeAnalysis.CSharp.dll
@@ -55,7 +59,7 @@ FROM mcr.microsoft.com/dotnet/core/runtime:3.0
 WORKDIR /app
 
 COPY --from=cpp-env /app/libprotobuf-mutator/build/src/libfuzzer-proto-dotnet/libfuzzer-proto-dotnet ./
-COPY --from=csharp-env /app/out ./
+COPY --from=csharp-env /app/src/out ./
 COPY corpus ./corpus
 
-ENTRYPOINT ["./libfuzzer-proto-dotnet", "--target_path=./Roslyn.Fuzz", "corpus"]
+ENTRYPOINT ["./libfuzzer-proto-dotnet", "-timeout=5", "--target_path=./Roslyn.Fuzz", "corpus"]
