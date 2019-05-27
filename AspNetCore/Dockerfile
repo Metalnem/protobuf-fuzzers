@@ -37,24 +37,28 @@ RUN /opt/cmake-3.14.2-Linux-x86_64/bin/cmake .. -GNinja \
 
 RUN ninja
 
-FROM mcr.microsoft.com/dotnet/core/sdk:3.0 AS csharp-env
+FROM mcr.microsoft.com/dotnet/core/sdk:2.2 AS csharp-env
 WORKDIR /app
 
 ENV PATH="${PATH}:/root/.dotnet/tools"
 RUN dotnet tool install --global SharpFuzz.CommandLine
 
+WORKDIR /app/src/
+
 COPY src/*.csproj ./
 RUN dotnet restore -r linux-x64
 
 COPY src/*.cs ./
+COPY build/http.proto /app/build/
+
 RUN dotnet publish -r linux-x64 --no-restore -c release -o out \
 	&& sharpfuzz out/Microsoft.AspNetCore.Server.Kestrel.Core.dll -System.IO.Pipelines.DuplexPipe
 
-FROM mcr.microsoft.com/dotnet/core/runtime:3.0
+FROM mcr.microsoft.com/dotnet/core/runtime:2.2
 WORKDIR /app
 
 COPY --from=cpp-env /app/libprotobuf-mutator/build/src/libfuzzer-proto-dotnet/libfuzzer-proto-dotnet ./
-COPY --from=csharp-env /app/out ./
+COPY --from=csharp-env /app/src/out ./
 COPY corpus ./corpus
 
-ENTRYPOINT ["./libfuzzer-proto-dotnet", "--target_path=./AspNetCore.Fuzz", "corpus"]
+ENTRYPOINT ["./libfuzzer-proto-dotnet", "-timeout=5", "--target_path=./AspNetCore.Fuzz", "corpus"]
