@@ -21,6 +21,7 @@ namespace AspNetCore.Fuzz
 	{
 		private static readonly byte[] chunkedHeader = Encoding.ASCII.GetBytes("Transfer-Encoding: chunked");
 		private static readonly byte[] chunkedMarker = Encoding.ASCII.GetBytes("0\r\n\r\n");
+		private static readonly byte[] connectionClose = Encoding.ASCII.GetBytes("Connection: close");
 
 		private static readonly byte[] clientBuffer = new byte[10_000_000];
 		private static readonly byte[] serverBuffer = new byte[10_000_000];
@@ -83,6 +84,12 @@ namespace AspNetCore.Fuzz
 					{
 						read += network.Read(clientBuffer, read, clientBuffer.Length - read);
 						var bufferSpan = clientBuffer.AsSpan(0, read);
+
+						if (bufferSpan.IndexOf(connectionClose) > -1)
+						{
+							Console.Error.WriteLine(request);
+							throw new Exception(Encoding.UTF8.GetString(clientBuffer, 0, read));
+						}
 
 						if (bufferSpan.IndexOf(chunkedHeader) == -1 || bufferSpan.EndsWith(chunkedMarker))
 						{
