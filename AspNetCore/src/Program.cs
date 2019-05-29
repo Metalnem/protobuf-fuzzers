@@ -44,6 +44,12 @@ namespace AspNetCore.Fuzz
 						options.Limits.MinRequestBodyDataRate = null;
 						options.Limits.MinResponseDataRate = null;
 
+						options.Limits.MaxRequestBufferSize = null;
+						options.Limits.MaxResponseBufferSize = null;
+
+						options.Limits.MaxRequestHeaderCount = 1000;
+						options.Limits.MaxRequestHeadersTotalSize = 10_000_000;
+
 						typeof(KestrelServerOptions).Assembly
 							.GetType("Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure.Heartbeat")
 							.GetField("Interval", BindingFlags.Public | BindingFlags.Static)
@@ -87,7 +93,7 @@ namespace AspNetCore.Fuzz
 
 						if (bufferSpan.IndexOf(connectionClose) > -1)
 						{
-							Console.Error.WriteLine(request);
+							Console.Error.WriteLine(http);
 							throw new Exception(Encoding.UTF8.GetString(clientBuffer, 0, read));
 						}
 
