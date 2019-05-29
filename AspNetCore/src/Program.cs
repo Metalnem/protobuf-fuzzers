@@ -18,11 +18,16 @@ namespace AspNetCore.Fuzz
 {
 	public class Program
 	{
-		private static readonly byte[] request = Encoding.UTF8.GetBytes("GET / HTTP/1.1\r\nHost: localhost\r\n\r\n");
-		private static readonly byte[] responseEnd = new byte[] { 48, 13, 10, 13, 10 };
+		private static readonly byte[] chunkedHeader = Encoding.ASCII.GetBytes("Transfer-Encoding: chunked");
+		private static readonly byte[] chunkedMarker = Encoding.ASCII.GetBytes("0\r\n\r\n");
 
 		private static readonly byte[] clientBuffer = new byte[10_000_000];
 		private static readonly byte[] serverBuffer = new byte[10_000_000];
+
+		private static readonly HashSet<string> ignoredHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+		{
+			"Content-Length", "Host", "Transfer-Encoding"
+		};
 
 		public static unsafe void Main(string[] args)
 		{
@@ -51,54 +56,47 @@ namespace AspNetCore.Fuzz
 
 		private static void Fuzz()
 		{
-			var trace = new List<(int, string)>();
-
-			SharpFuzz.Common.Trace.OnBranch = (id, name) =>
-			{
-				lock (trace)
-				{
-					trace.Add((id, name));
-				}
-			};
-
 			using (var client = new TcpClient("localhost", 80))
 			using (var network = client.GetStream())
 			{
 				Fuzzer.LibFuzzer.Run(span =>
 				{
-					Request message;
+					Request request;
 
 					try
 					{
-						message = Request.Parser.ParseFrom(span.ToArray());
+						request = Request.Parser.ParseFrom(span.ToArray());
 					}
 					catch
 					{
 						return;
 					}
 
-					network.Write(request, 0, request.Length);
+					var http = ProtoToHttp(request);
+					var bytes = Encoding.UTF8.GetBytes(http);
+
+					network.Write(bytes, 0, bytes.Length);
 					int read = 0;
 
 					for (; ; )
 					{
 						read += network.Read(clientBuffer, read, clientBuffer.Length - read);
+						var bufferSpan = clientBuffer.AsSpan(0, read);
 
-						if (clientBuffer.AsSpan(0, read).EndsWith(responseEnd))
+						if (bufferSpan.IndexOf(chunkedHeader) == -1 || bufferSpan.EndsWith(chunkedMarker))
 						{
 							break;
 						}
 					}
-
-					List<(int, string)> copy;
-
-					lock (trace)
-					{
-						copy = new List<(int, string)>(trace);
-						trace.Clear();
-					}
 				});
 			}
+		}
+
+		private static string ProtoToHttp(Request request)
+		{
+			var sb = new StringBuilder("GET / HTTP/1.1\r\nHost: localhost\r\n\r\n");
+
+			return sb.ToString();
 		}
 
 		private class Startup
