@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure;
 using Microsoft.Extensions.Logging;
 using SharpFuzz;
 
@@ -94,7 +95,31 @@ namespace AspNetCore.Fuzz
 
 		private static string ProtoToHttp(Request request)
 		{
-			var sb = new StringBuilder("GET / HTTP/1.1\r\nHost: localhost\r\n\r\n");
+			var path = "/";
+			var host = HttpUtilities.IsHostHeaderValid(request.Host) ? request.Host : "localhost";
+			var sb = new StringBuilder($"GET {path} HTTP/1.1\r\nHost: {host}\r\n");
+
+			foreach (var header in request.Headers)
+			{
+				if (header.Name is null || header.Value is null)
+				{
+					continue;
+				}
+
+				var name = header.Name.Trim();
+				var value = header.Value.Trim();
+
+				if (name.Length > 0
+					&& value.Length > 0
+					&& HttpCharacters.IndexOfInvalidTokenChar(name) == -1
+					&& HttpCharacters.IndexOfInvalidFieldValueChar(value) == -1
+					&& !ignoredHeaders.Contains(name))
+				{
+					sb.Append($"{name}: {value}\r\n");
+				}
+			}
+
+			sb.Append("\r\n");
 
 			return sb.ToString();
 		}
