@@ -143,6 +143,33 @@ namespace AspNetCore.Fuzz
 			{
 				app.Run(async context =>
 				{
+					var headers = context.Request.GetTypedHeaders();
+
+					var values = new object[]
+					{
+						headers.Accept,
+						headers.AcceptCharset,
+						headers.AcceptEncoding,
+						headers.AcceptLanguage,
+						headers.CacheControl,
+						headers.ContentDisposition,
+						headers.ContentLength,
+						headers.ContentRange,
+						headers.ContentType,
+						headers.Cookie,
+						headers.Date,
+						headers.Expires,
+						headers.Host,
+						headers.IfMatch,
+						headers.IfModifiedSince,
+						headers.IfNoneMatch,
+						headers.IfRange,
+						headers.IfUnmodifiedSince,
+						headers.LastModified,
+						headers.Range,
+						headers.Referer
+					};
+
 					await context.Request.Body.ReadAsync(serverBuffer);
 					await context.Response.WriteAsync(String.Empty);
 				});
