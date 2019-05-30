@@ -41,14 +41,13 @@ namespace AspNetCore.Fuzz
 				WebHost.CreateDefaultBuilder(args)
 					.UseKestrel(options =>
 					{
-						options.Limits.MinRequestBodyDataRate = null;
-						options.Limits.MinResponseDataRate = null;
-
+						options.Limits.KeepAliveTimeout = TimeSpan.FromDays(10);
 						options.Limits.MaxRequestBufferSize = null;
-						options.Limits.MaxResponseBufferSize = null;
-
 						options.Limits.MaxRequestHeaderCount = 1000;
 						options.Limits.MaxRequestHeadersTotalSize = 10_000_000;
+						options.Limits.MaxResponseBufferSize = null;
+						options.Limits.MinRequestBodyDataRate = null;
+						options.Limits.MinResponseDataRate = null;
 
 						typeof(KestrelServerOptions).Assembly
 							.GetType("Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure.Heartbeat")
