@@ -52,8 +52,8 @@ COPY src/*.cs ./
 COPY build/http.proto /app/build/
 
 RUN dotnet publish -r linux-x64 --no-restore -c release -o out \
-	&& for file in out/Microsoft.AspNetCore.Http.*; do echo "$file" && sharpfuzz "$file" -System.IO.Pipelines.DuplexPipe; done \
-	&& for file in out/Microsoft.AspNetCore.Server.Kestrel.*; do echo "$file" && sharpfuzz "$file" -System.IO.Pipelines.DuplexPipe; done
+	&& for file in out/Microsoft.AspNetCore.Http.*; do echo "$file" && sharpfuzz "$file"; done \
+	&& sharpfuzz out/Microsoft.AspNetCore.Server.Kestrel.Core.dll -System.IO.Pipelines.DuplexPipe
 
 FROM mcr.microsoft.com/dotnet/core/runtime:2.2
 WORKDIR /app
