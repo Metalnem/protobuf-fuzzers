@@ -43,8 +43,13 @@ WORKDIR /app
 ENV PATH="${PATH}:/root/.dotnet/tools"
 RUN dotnet tool install --global SharpFuzz.CommandLine
 
-WORKDIR /app/src/
+WORKDIR /app/empty/
+COPY build/Empty.csproj build/Program.cs ./
+RUN dotnet publish -r linux-x64 -c release -o out \
+	&& for file in out/Microsoft.AspNetCore.Http.*; do echo "$file" && sharpfuzz "$file"; done \
+	&& sharpfuzz out/Microsoft.AspNetCore.Server.Kestrel.Core.dll -System.IO.Pipelines.DuplexPipe
 
+WORKDIR /app/src/
 COPY src/*.csproj ./
 RUN dotnet restore -r linux-x64
 
@@ -52,8 +57,8 @@ COPY src/*.cs ./
 COPY build/http.proto /app/build/
 
 RUN dotnet publish -r linux-x64 --no-restore -c release -o out \
-	&& for file in out/Microsoft.AspNetCore.Http.*; do echo "$file" && sharpfuzz "$file"; done \
-	&& sharpfuzz out/Microsoft.AspNetCore.Server.Kestrel.Core.dll -System.IO.Pipelines.DuplexPipe
+	&& cp /app/empty/out/Microsoft.AspNetCore.Http.* out/ \
+	&& cp /app/empty/out/Microsoft.AspNetCore.Server.Kestrel.Core.dll out/
 
 FROM mcr.microsoft.com/dotnet/core/runtime:2.2
 WORKDIR /app
