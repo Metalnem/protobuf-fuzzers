@@ -78,10 +78,12 @@ namespace AspNetCore.Fuzz
 						return;
 					}
 
-					var http = ProtoToHttp(request);
-					var bytes = Encoding.UTF8.GetBytes(http);
+					var headers = ProtoToHeaders(request);
+					var length = Encoding.UTF8.GetBytes(headers, clientBuffer);
 
-					network.Write(bytes, 0, bytes.Length);
+					request.Body.CopyTo(clientBuffer, length);
+					network.Write(clientBuffer, 0, length + request.Body.Length);
+
 					int read = 0;
 
 					for (; ; )
@@ -91,7 +93,7 @@ namespace AspNetCore.Fuzz
 
 						if (bufferSpan.IndexOf(connectionClose) > -1)
 						{
-							Console.Error.WriteLine(http);
+							Console.Error.WriteLine(headers);
 							throw new Exception(Encoding.UTF8.GetString(clientBuffer, 0, read));
 						}
 
@@ -120,7 +122,7 @@ namespace AspNetCore.Fuzz
 			}
 		}
 
-		private static string ProtoToHttp(Request request)
+		private static string ProtoToHeaders(Request request)
 		{
 			var method = GetMethod(request);
 			var path = "/";
@@ -147,7 +149,11 @@ namespace AspNetCore.Fuzz
 				}
 			}
 
-			if (request.Method == Method.Post || request.Method == Method.Put)
+			if (request.Body.Length > 0)
+			{
+				sb.Append($"Content-Length: {request.Body.Length}\r\n");
+			}
+			else if (request.Method == Method.Post || request.Method == Method.Put)
 			{
 				sb.Append("Content-Length: 0\r\n");
 			}
