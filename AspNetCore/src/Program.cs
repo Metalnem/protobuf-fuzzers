@@ -104,11 +104,28 @@ namespace AspNetCore.Fuzz
 			}
 		}
 
+		private static string GetMethod(Request request)
+		{
+			switch (request.Method)
+			{
+				case Method.Get: return "GET";
+				case Method.Head: return "HEAD";
+				case Method.Post: return "POST";
+				case Method.Put: return "PUT";
+				case Method.Delete: return "DELETE";
+				case Method.Options: return "OPTIONS";
+				case Method.Trace: return "TRACE";
+				case Method.Patch: return "PATCH";
+				default: return "GET";
+			}
+		}
+
 		private static string ProtoToHttp(Request request)
 		{
+			var method = GetMethod(request);
 			var path = "/";
 			var host = HttpUtilities.IsHostHeaderValid(request.Host) ? request.Host : "localhost";
-			var sb = new StringBuilder($"GET {path} HTTP/1.1\r\nHost: {host}\r\n");
+			var sb = new StringBuilder($"{method} {path} HTTP/1.1\r\nHost: {host}\r\n");
 
 			foreach (var header in request.Headers)
 			{
@@ -128,6 +145,11 @@ namespace AspNetCore.Fuzz
 				{
 					sb.Append($"{name}: {value}\r\n");
 				}
+			}
+
+			if (request.Method == Method.Post || request.Method == Method.Put)
+			{
+				sb.Append("Content-Length: 0\r\n");
 			}
 
 			sb.Append("\r\n");
