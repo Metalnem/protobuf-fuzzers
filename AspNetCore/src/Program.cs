@@ -25,6 +25,8 @@ namespace AspNetCore.Fuzz
 		private static readonly byte[] clientBuffer = new byte[10_000_000];
 		private static readonly byte[] serverBuffer = new byte[10_000_000];
 
+		private static readonly char[] invalidPathChars = new char[] { ' ', '\r', '\n', '%' };
+
 		private static readonly HashSet<string> ignoredHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
 		{
 			"Content-Length", "Host", "Transfer-Encoding"
@@ -122,10 +124,45 @@ namespace AspNetCore.Fuzz
 			}
 		}
 
+		private static string GetPath(Request request)
+		{
+			const string defaultPath = "/";
+
+			if (request.Path is null)
+			{
+				return defaultPath;
+			}
+
+			var path = request.Path.Trim();
+
+			if (path.Length == 0
+				|| path.StartsWith('?')
+				|| path.EndsWith('?')
+				|| path.IndexOfAny(invalidPathChars) >= 0)
+			{
+				return defaultPath;
+			}
+
+			foreach (var ch in path)
+			{
+				if (ch < 1 || ch > 127)
+				{
+					return defaultPath;
+				}
+			}
+
+			if (!path.StartsWith('/'))
+			{
+				return $"/{path}";
+			}
+
+			return path;
+		}
+
 		private static string ProtoToHeaders(Request request)
 		{
 			var method = GetMethod(request);
-			var path = "/";
+			var path = GetPath(request);
 			var host = HttpUtilities.IsHostHeaderValid(request.Host) ? request.Host : "localhost";
 			var sb = new StringBuilder($"{method} {path} HTTP/1.1\r\nHost: {host}\r\n");
 
