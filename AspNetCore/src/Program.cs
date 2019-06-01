@@ -101,6 +101,9 @@ namespace AspNetCore.Fuzz
 
 					if (bufferSpan.IndexOf(connectionClose) > -1)
 					{
+						Console.WriteLine(headers);
+						Console.WriteLine(Encoding.UTF8.GetString(clientBuffer, 0, read));
+
 						client.Dispose();
 						network.Dispose();
 
