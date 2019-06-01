@@ -29,7 +29,7 @@ namespace AspNetCore.Fuzz
 
 		private static readonly HashSet<string> ignoredHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
 		{
-			"Content-Length", "Host", "Transfer-Encoding"
+			"Connection", "Content-Length", "Host", "Transfer-Encoding"
 		};
 
 		public static unsafe void Main(string[] args)
