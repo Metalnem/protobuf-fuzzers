@@ -64,48 +64,58 @@ namespace AspNetCore.Fuzz
 
 		private static void Fuzz()
 		{
-			using (var client = new TcpClient("localhost", 80))
-			using (var network = client.GetStream())
+			TcpClient client = null;
+			NetworkStream network = null;
+
+			Fuzzer.LibFuzzer.Run(span =>
 			{
-				Fuzzer.LibFuzzer.Run(span =>
+				Request request;
+
+				try
 				{
-					Request request;
+					request = Request.Parser.ParseFrom(span.ToArray());
+				}
+				catch
+				{
+					return;
+				}
 
-					try
+				if (client is null)
+				{
+					client = new TcpClient("localhost", 80);
+					network = client.GetStream();
+				}
+
+				var headers = ProtoToHeaders(request);
+				var length = Encoding.UTF8.GetBytes(headers, clientBuffer);
+
+				request.Body.CopyTo(clientBuffer, length);
+				network.Write(clientBuffer, 0, length + request.Body.Length);
+
+				int read = 0;
+
+				for (; ; )
+				{
+					read += network.Read(clientBuffer, read, clientBuffer.Length - read);
+					var bufferSpan = clientBuffer.AsSpan(0, read);
+
+					if (bufferSpan.IndexOf(connectionClose) > -1)
 					{
-						request = Request.Parser.ParseFrom(span.ToArray());
+						client.Dispose();
+						network.Dispose();
+
+						client = null;
+						network = null;
+
+						break;
 					}
-					catch
+
+					if (bufferSpan.IndexOf(chunkedHeader) == -1 || bufferSpan.EndsWith(chunkedMarker))
 					{
-						return;
+						break;
 					}
-
-					var headers = ProtoToHeaders(request);
-					var length = Encoding.UTF8.GetBytes(headers, clientBuffer);
-
-					request.Body.CopyTo(clientBuffer, length);
-					network.Write(clientBuffer, 0, length + request.Body.Length);
-
-					int read = 0;
-
-					for (; ; )
-					{
-						read += network.Read(clientBuffer, read, clientBuffer.Length - read);
-						var bufferSpan = clientBuffer.AsSpan(0, read);
-
-						if (bufferSpan.IndexOf(connectionClose) > -1)
-						{
-							Console.Error.WriteLine(headers);
-							throw new Exception(Encoding.UTF8.GetString(clientBuffer, 0, read));
-						}
-
-						if (bufferSpan.IndexOf(chunkedHeader) == -1 || bufferSpan.EndsWith(chunkedMarker))
-						{
-							break;
-						}
-					}
-				});
-			}
+				}
+			});
 		}
 
 		private static string GetMethod(Request request)
