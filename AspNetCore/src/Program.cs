@@ -56,14 +56,17 @@ namespace AspNetCore.Fuzz
 							.SetValue(null, TimeSpan.FromDays(10));
 					})
 					.UseStartup<Startup>()
+					.UseUrls("http://*:5000/")
 					.ConfigureLogging(logging => logging.ClearProviders())
 					.Build()
 					.Run();
 			}
 		}
 
-		private static void Fuzz()
+		private static void Fuzz(IApplicationLifetime lifetime)
 		{
+			bool libFuzzer = Environment.GetEnvironmentVariable("__LIBFUZZER_SHM_ID") is string s && Int32.TryParse(s, out _);
+
 			TcpClient client = null;
 			NetworkStream network = null;
 
@@ -82,7 +85,7 @@ namespace AspNetCore.Fuzz
 
 				if (client is null)
 				{
-					client = new TcpClient("localhost", 80);
+					client = new TcpClient("localhost", 5000);
 					network = client.GetStream();
 				}
 
@@ -117,6 +120,20 @@ namespace AspNetCore.Fuzz
 					{
 						break;
 					}
+				}
+
+				if (!libFuzzer)
+				{
+					Console.Write(headers);
+
+					if (request.Body.Length > 0)
+					{
+						Console.WriteLine(request.Body.ToBase64());
+						Console.WriteLine();
+					}
+
+					Console.Write(Encoding.UTF8.GetString(clientBuffer, 0, read));
+					lifetime.StopApplication();
 				}
 			});
 		}
@@ -250,7 +267,7 @@ namespace AspNetCore.Fuzz
 					await context.Response.WriteAsync(String.Empty);
 				});
 
-				lifetime.ApplicationStarted.Register(() => Task.Run((Action)Fuzz));
+				lifetime.ApplicationStarted.Register(() => Task.Run(() => Fuzz(lifetime)));
 			}
 		}
 	}
