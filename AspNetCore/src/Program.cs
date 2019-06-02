@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Google.Protobuf;
 using Http;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Builder;
@@ -104,8 +105,7 @@ namespace AspNetCore.Fuzz
 
 					if (bufferSpan.IndexOf(connectionClose) > -1)
 					{
-						Console.WriteLine(headers);
-						Console.WriteLine(Encoding.UTF8.GetString(clientBuffer, 0, read));
+						Print(headers, request.Body, clientBuffer.AsSpan(0, read));
 
 						client.Dispose();
 						network.Dispose();
@@ -124,18 +124,23 @@ namespace AspNetCore.Fuzz
 
 				if (!libFuzzer)
 				{
-					Console.Write(headers);
-
-					if (request.Body.Length > 0)
-					{
-						Console.WriteLine(request.Body.ToBase64());
-						Console.WriteLine();
-					}
-
-					Console.Write(Encoding.UTF8.GetString(clientBuffer, 0, read));
+					Print(headers, request.Body, clientBuffer.AsSpan(0, read));
 					lifetime.StopApplication();
 				}
 			});
+		}
+
+		private static void Print(string headers, ByteString body, ReadOnlySpan<byte> response)
+		{
+			Console.Write(headers);
+
+			if (body.Length > 0)
+			{
+				Console.WriteLine(body.ToBase64());
+				Console.WriteLine();
+			}
+
+			Console.Write(Encoding.UTF8.GetString(response));
 		}
 
 		private static string GetMethod(Request request)
