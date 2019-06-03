@@ -40,7 +40,7 @@ namespace AspNetCore.Fuzz
 				SharpFuzz.Common.Trace.SharedMem = trace;
 				SharpFuzz.Common.Trace.OnBranch = (id, name) => { };
 
-				WebHost.CreateDefaultBuilder(args)
+				new WebHostBuilder()
 					.UseKestrel(options =>
 					{
 						options.Limits.KeepAliveTimeout = TimeSpan.FromDays(10);
@@ -58,7 +58,6 @@ namespace AspNetCore.Fuzz
 					})
 					.UseStartup<Startup>()
 					.UseUrls("http://*:5000/")
-					.ConfigureLogging(logging => logging.ClearProviders())
 					.Build()
 					.Run();
 			}
