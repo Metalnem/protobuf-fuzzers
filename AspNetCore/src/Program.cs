@@ -28,11 +28,6 @@ namespace AspNetCore.Fuzz
 
 		private static readonly char[] invalidPathChars = new char[] { ' ', '\r', '\n', '%' };
 
-		private static readonly HashSet<string> ignoredHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-		{
-			"Connection", "Content-Length", "Host", "Transfer-Encoding"
-		};
-
 		public static unsafe void Main(string[] args)
 		{
 			fixed (byte* trace = new byte[65_536])
@@ -154,8 +149,104 @@ namespace AspNetCore.Fuzz
 				case Method.Options: return "OPTIONS";
 				case Method.Trace: return "TRACE";
 				case Method.Patch: return "PATCH";
-				default: return "GET";
 			}
+
+			return "GET";
+		}
+
+		private static string GetHeaderName(HeaderName headerName)
+		{
+			switch (headerName)
+			{
+				case HeaderName.Accept: return "Accept";
+				case HeaderName.AcceptCharset: return "Accept-Charset";
+				case HeaderName.AcceptEncoding: return "Accept-Encoding";
+				case HeaderName.AcceptLanguage: return "Accept-Language";
+				case HeaderName.AcceptPatch: return "Accept-Patch";
+				case HeaderName.AcceptRanges: return "Accept-Ranges";
+				case HeaderName.AccessControlAllowCredentials: return "Access-Control-Allow-Credentials";
+				case HeaderName.AccessControlAllowHeaders: return "Access-Control-Allow-Headers";
+				case HeaderName.AccessControlAllowMethods: return "Access-Control-Allow-Methods";
+				case HeaderName.AccessControlAllowOrigin: return "Access-Control-Allow-Origin";
+				case HeaderName.AccessControlExposeHeaders: return "Access-Control-Expose-Headers";
+				case HeaderName.AccessControlMaxAge: return "Access-Control-Max-Age";
+				case HeaderName.AccessControlRequestHeaders: return "Access-Control-Request-Headers";
+				case HeaderName.AccessControlRequestMethod: return "Access-Control-Request-Method";
+				case HeaderName.Age: return "Age";
+				case HeaderName.Allow: return "Allow";
+				case HeaderName.AltSvc: return "Alt-Svc";
+				case HeaderName.Authorization: return "Authorization";
+				case HeaderName.CacheControl: return "Cache-Control";
+				case HeaderName.ClearSiteData: return "Clear-Site-Data";
+				case HeaderName.ContentDisposition: return "Content-Disposition";
+				case HeaderName.ContentEncoding: return "Content-Encoding";
+				case HeaderName.ContentLanguage: return "Content-Language";
+				case HeaderName.ContentLocation: return "Content-Location";
+				case HeaderName.ContentRange: return "Content-Range";
+				case HeaderName.ContentSecurityPolicy: return "Content-Security-Policy";
+				case HeaderName.ContentSecurityPolicyReportOnly: return "Content-Security-Policy-Report-Only";
+				case HeaderName.ContentType: return "Content-Type";
+				case HeaderName.Cookie: return "Cookie";
+				case HeaderName.Cookie2: return "Cookie2";
+				case HeaderName.CrossOriginResourcePolicy: return "Cross-Origin-Resource-Policy";
+				case HeaderName.Dnt: return "DNT";
+				case HeaderName.Date: return "Date";
+				case HeaderName.Etag: return "ETag";
+				case HeaderName.EarlyData: return "Early-Data";
+				case HeaderName.Expect: return "Expect";
+				case HeaderName.ExpectCt: return "Expect-CT";
+				case HeaderName.Expires: return "Expires";
+				case HeaderName.FeaturePolicy: return "Feature-Policy";
+				case HeaderName.Forwarded: return "Forwarded";
+				case HeaderName.From: return "From";
+				case HeaderName.IfMatch: return "If-Match";
+				case HeaderName.IfModifiedSince: return "If-Modified-Since";
+				case HeaderName.IfNoneMatch: return "If-None-Match";
+				case HeaderName.IfRange: return "If-Range";
+				case HeaderName.IfUnmodifiedSince: return "If-Unmodified-Since";
+				case HeaderName.Index: return "Index";
+				case HeaderName.LargeAllocation: return "Large-Allocation";
+				case HeaderName.LastModified: return "Last-Modified";
+				case HeaderName.Link: return "Link";
+				case HeaderName.Location: return "Location";
+				case HeaderName.Origin: return "Origin";
+				case HeaderName.Pragma: return "Pragma";
+				case HeaderName.ProxyAuthenticate: return "Proxy-Authenticate";
+				case HeaderName.ProxyAuthorization: return "Proxy-Authorization";
+				case HeaderName.PublicKeyPins: return "Public-Key-Pins";
+				case HeaderName.PublicKeyPinsReportOnly: return "Public-Key-Pins-Report-Only";
+				case HeaderName.Range: return "Range";
+				case HeaderName.Referer: return "Referer";
+				case HeaderName.ReferrerPolicy: return "Referrer-Policy";
+				case HeaderName.RetryAfter: return "Retry-After";
+				case HeaderName.SaveData: return "Save-Data";
+				case HeaderName.SecWebSocketAccept: return "Sec-WebSocket-Accept";
+				case HeaderName.Server: return "Server";
+				case HeaderName.ServerTiming: return "Server-Timing";
+				case HeaderName.SetCookie: return "Set-Cookie";
+				case HeaderName.SetCookie2: return "Set-Cookie2";
+				case HeaderName.SourceMap: return "SourceMap";
+				case HeaderName.StrictTransportSecurity: return "Strict-Transport-Security";
+				case HeaderName.Te: return "TE";
+				case HeaderName.TimingAllowOrigin: return "Timing-Allow-Origin";
+				case HeaderName.Tk: return "Tk";
+				case HeaderName.Trailer: return "Trailer";
+				case HeaderName.UpgradeInsecureRequests: return "Upgrade-Insecure-Requests";
+				case HeaderName.UserAgent: return "User-Agent";
+				case HeaderName.Vary: return "Vary";
+				case HeaderName.Via: return "Via";
+				case HeaderName.Wwwauthenticate: return "WWW-Authenticate";
+				case HeaderName.Warning: return "Warning";
+				case HeaderName.XcontentTypeOptions: return "X-Content-Type-Options";
+				case HeaderName.XdnsprefetchControl: return "X-DNS-Prefetch-Control";
+				case HeaderName.XforwardedFor: return "X-Forwarded-For";
+				case HeaderName.XforwardedHost: return "X-Forwarded-Host";
+				case HeaderName.XforwardedProto: return "X-Forwarded-Proto";
+				case HeaderName.XframeOptions: return "X-Frame-Options";
+				case HeaderName.Xxssprotection: return "X-XSS-Protection";
+			}
+
+			return null;
 		}
 
 		private static string GetPath(Request request)
@@ -202,19 +293,16 @@ namespace AspNetCore.Fuzz
 
 			foreach (var header in request.Headers)
 			{
-				if (header.Name is null || header.Value is null)
+				var name = GetHeaderName(header.Name);
+				var value = header.Value?.Trim();
+
+				if (name is null || String.IsNullOrEmpty(value))
 				{
 					continue;
 				}
 
-				var name = header.Name.Trim();
-				var value = header.Value.Trim();
-
-				if (name.Length > 0
-					&& value.Length > 0
-					&& HttpCharacters.IndexOfInvalidTokenChar(name) == -1
-					&& HttpCharacters.IndexOfInvalidFieldValueChar(value) == -1
-					&& !ignoredHeaders.Contains(name))
+				if (HttpCharacters.IndexOfInvalidTokenChar(name) == -1
+					&& HttpCharacters.IndexOfInvalidFieldValueChar(value) == -1)
 				{
 					sb.Append($"{name}: {value}\r\n");
 				}
