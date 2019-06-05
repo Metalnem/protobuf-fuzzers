@@ -12,6 +12,7 @@ Work in progress.
 
 - [ASP.NET Core](https://github.com/Metalnem/protobuf-fuzzers/tree/master/AspNetCore)
 - [Roslyn](https://github.com/Metalnem/protobuf-fuzzers/tree/master/Roslyn)
+- [WPF](https://github.com/Metalnem/protobuf-fuzzers/tree/master/Wpf)
 
 ## Resources
 

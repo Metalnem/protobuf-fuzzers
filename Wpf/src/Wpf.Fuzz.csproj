@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsDesktop.App" Version="3.0.0-preview4-27622-07" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <PackageConflictPreferredPackages>Microsoft.WindowsDesktop.App;runtime.win-x64.Microsoft.WindowsDesktop.App;$(PackageConflictPreferredPackages)</PackageConflictPreferredPackages>
+  </PropertyGroup>
+
+</Project>
