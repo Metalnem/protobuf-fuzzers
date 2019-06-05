@@ -3,10 +3,12 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsDesktop.App" Version="3.0.0-preview4-27622-07" />
+    <PackageReference Include="SharpFuzz" Version="1.6.0" />
   </ItemGroup>
 
   <PropertyGroup>
