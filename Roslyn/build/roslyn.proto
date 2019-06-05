@@ -67,7 +67,7 @@ message LogicalOp {
 message Condition {
   oneof cond_oneof {
     CompareOp compare = 1;
-	LogicalOp logical = 2;
+    LogicalOp logical = 2;
   }
 }
 
