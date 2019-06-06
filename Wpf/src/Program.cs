@@ -1,5 +1,6 @@
 ﻿using System;
-using System.Security.Cryptography;
+using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,12 +13,12 @@ namespace Wpf.Fuzz
 		[STAThread]
 		public static unsafe void Main()
 		{
-			var trace = new byte[65536];
-			var sha = SHA256.Create();
+			var sharedMem = new byte[65536];
 
-			fixed (byte* ptr = trace)
+			fixed (byte* ptr = sharedMem)
 			{
 				Trace.SharedMem = ptr;
+				Trace.OnBranch = (id, name) => { };
 
 				var window = new Window { Title = "Fuzzing WPF" };
 				var application = new Application();
@@ -27,19 +28,41 @@ namespace Wpf.Fuzz
 				{
 					Task.Run(() =>
 					{
+						var trace = new List<(int, string)>();
+
+						SharpFuzz.Common.Trace.OnBranch = (id, name) =>
+						{
+							lock (sharedMem)
+							{
+								trace.Add((id, name));
+							}
+						};
+
 						for (int i = 1; i < 100; ++i)
 						{
-							Array.Clear(trace, 0, trace.Length);
+							sharedMem.AsSpan().Clear();
+							trace.Clear();
 
 							dispacher.Invoke(() =>
 							{
 								window.Content = new TextBlock { Text = $"Iteration {i}" };
 							});
 
-							var hash = sha.ComputeHash(trace);
-							var hex = BitConverter.ToString(hash).Replace("-", String.Empty);
+							List<(int, string)> copy;
 
-							Console.WriteLine(hex);
+							lock (sharedMem)
+							{
+								copy = new List<(int, string)>(trace);
+								trace.Clear();
+							}
+
+							using (var log = File.CreateText($"{i}.txt"))
+							{
+								foreach (var (id, name) in copy)
+								{
+									log.WriteLine($"{id}: {name}");
+								}
+							}
 						}
 					});
 				};
