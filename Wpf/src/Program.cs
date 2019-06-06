@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Security.Cryptography;
-using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using SharpFuzz.Common;
 
 namespace Wpf.Fuzz
@@ -9,7 +10,7 @@ namespace Wpf.Fuzz
 	public static class Program
 	{
 		[STAThread]
-		public static unsafe void Main(string[] args)
+		public static unsafe void Main()
 		{
 			var trace = new byte[65536];
 			var sha = SHA256.Create();
@@ -18,28 +19,32 @@ namespace Wpf.Fuzz
 			{
 				Trace.SharedMem = ptr;
 
-				for (int i = 0; i < 100; ++i)
+				var window = new Window { Title = "Fuzzing WPF" };
+				var application = new Application();
+				var dispacher = application.Dispatcher;
+
+				window.Loaded += (sender, args) =>
 				{
-					Array.Clear(trace, 0, trace.Length);
-
-					var thread = new Thread(() =>
+					Task.Run(() =>
 					{
-						var window = new Window();
-						var application = new Application();
+						for (int i = 1; i < 100; ++i)
+						{
+							Array.Clear(trace, 0, trace.Length);
 
-						window.Loaded += (x, y) => window.Close();
-						window.Title = "Fuzzing WPF";
+							dispacher.Invoke(() =>
+							{
+								window.Content = new TextBlock { Text = $"Iteration {i}" };
+							});
 
-						application.Run(window);
+							var hash = sha.ComputeHash(trace);
+							var hex = BitConverter.ToString(hash).Replace("-", String.Empty);
+
+							Console.WriteLine(hex);
+						}
 					});
+				};
 
-					thread.Join();
-
-					var hash = sha.ComputeHash(trace);
-					var hex = BitConverter.ToString(hash).Replace("-", String.Empty);
-
-					Console.WriteLine(hex);
-				}
+				application.Run(window);
 			}
 		}
 	}
