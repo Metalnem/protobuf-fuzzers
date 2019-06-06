@@ -64,6 +64,8 @@ namespace Wpf.Fuzz
 								}
 							}
 						}
+
+						dispacher.Invoke(window.Close);
 					});
 				};
 
