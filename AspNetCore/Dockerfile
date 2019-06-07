@@ -67,6 +67,6 @@ COPY --from=cpp-env /app/libprotobuf-mutator/build/src/libfuzzer-proto-dotnet/li
 COPY --from=csharp-env /app/src/out ./
 
 COPY build/http.dict ./
-COPY corpus ./corpus
+RUN mkdir corpus
 
 ENTRYPOINT ["./libfuzzer-proto-dotnet", "-dict=http.dict", "-timeout=5", "--target_path=./AspNetCore.Fuzz", "corpus"]

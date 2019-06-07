@@ -101,9 +101,22 @@ enum HeaderName {
   XXSSProtection = 85;
 }
 
+message SingleValue {
+  oneof singlevalue_oneof {
+    string string = 1;
+    int64 number = 2;
+    uint64 date = 3;
+  }
+}
+
+message QualityValue {
+  SingleValue value = 1;
+  uint32 quality = 2;
+}
+
 message Header {
   HeaderName name = 1;
-  string value = 2;
+  repeated QualityValue values = 2;
 }
 
 message Request {

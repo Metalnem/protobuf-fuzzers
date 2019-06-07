@@ -249,6 +249,60 @@ namespace AspNetCore.Fuzz
 			return null;
 		}
 
+		private static string GetHeaderValue(Header header)
+		{
+			if (header.Values is null)
+			{
+				return null;
+			}
+
+			var sb = new StringBuilder();
+			var separator = String.Empty;
+
+			foreach (var value in header.Values)
+			{
+				if (value.Value is null)
+				{
+					continue;
+				}
+
+				string s = null;
+
+				switch (value.Value.SinglevalueOneofCase)
+				{
+					case SingleValue.SinglevalueOneofOneofCase.String: s = value.Value.String; break;
+					case SingleValue.SinglevalueOneofOneofCase.Number: s = value.Value.Number.ToString(); break;
+					case SingleValue.SinglevalueOneofOneofCase.Date: s = GetDateValue(value.Value.Date); break;
+				}
+
+				if (String.IsNullOrEmpty(s))
+				{
+					continue;
+				}
+
+				if (value.Quality > 0)
+				{
+					var quality = (double)value.Quality / uint.MaxValue;
+					s = $"{s};q={quality:0.###}";
+				}
+
+				sb.Append(separator);
+				sb.Append(s);
+
+				separator = ", ";
+			}
+
+			return sb.ToString();
+		}
+
+		private static string GetDateValue(ulong date)
+		{
+			var maxDate = (ulong)DateTime.MaxValue.Ticks;
+			var ticks = (long)(date % (maxDate + 1));
+
+			return new DateTime(ticks).ToString("U");
+		}
+
 		private static string GetPath(Request request)
 		{
 			const string defaultPath = "/";
@@ -294,14 +348,11 @@ namespace AspNetCore.Fuzz
 			foreach (var header in request.Headers)
 			{
 				var name = GetHeaderName(header.Name);
-				var value = header.Value?.Trim();
+				var value = GetHeaderValue(header);
 
-				if (name is null || String.IsNullOrEmpty(value))
-				{
-					continue;
-				}
-
-				if (HttpCharacters.IndexOfInvalidTokenChar(name) == -1
+				if (!String.IsNullOrEmpty(name)
+					&& !String.IsNullOrEmpty(value)
+					&& HttpCharacters.IndexOfInvalidTokenChar(name) == -1
 					&& HttpCharacters.IndexOfInvalidFieldValueChar(value) == -1)
 				{
 					sb.Append($"{name}: {value}\r\n");
