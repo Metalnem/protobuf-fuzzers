@@ -46,7 +46,10 @@ namespace Wpf.Fuzz
 						var window = new Window
 						{
 							Content = new TextBlock { Text = $"Iteration {i:00}" },
-							ShowInTaskbar = false
+							IsHitTestVisible = false,
+							ShowInTaskbar = false,
+							WindowStyle = WindowStyle.None,
+							WindowStartupLocation = WindowStartupLocation.CenterScreen
 						};
 
 						window.Loaded += (sender, args) =>
