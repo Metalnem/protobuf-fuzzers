@@ -3,15 +3,45 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
+using SharpFuzz;
 using SharpFuzz.Common;
 
 namespace Wpf.Fuzz
 {
 	public static class Program
 	{
-		public static unsafe void Main()
+		private const int MapSize = 65_536;
+
+		public static void Main(string[] args)
 		{
-			var sharedMem = new byte[65536];
+			switch (args[0])
+			{
+				case "--local": Local(); break;
+				case "--remote": Remote(); break;
+				default: throw new ArgumentException("Unknown command line flag.");
+			}
+		}
+
+		private static void Local()
+		{
+			Fuzzer.LibFuzzer.Run(span =>
+			{
+				Layout.FrameworkElement element;
+
+				try
+				{
+					element = Layout.FrameworkElement.Parser.ParseFrom(span.ToArray());
+				}
+				catch
+				{
+					return;
+				}
+			});
+		}
+
+		private static unsafe void Remote()
+		{
+			var sharedMem = new byte[MapSize];
 
 			fixed (byte* ptr = sharedMem)
 			{
@@ -37,7 +67,7 @@ namespace Wpf.Fuzz
 							WindowStartupLocation = WindowStartupLocation.CenterScreen
 						};
 
-						window.Loaded += (sender, args) =>
+						window.Loaded += (sender, _) =>
 						{
 							dispatcher.BeginInvokeShutdown(DispatcherPriority.ApplicationIdle);
 						};
@@ -53,6 +83,11 @@ namespace Wpf.Fuzz
 					thread.Join();
 				}
 			}
+		}
+
+		private static FrameworkElement ProtoToElement(Layout.FrameworkElement element)
+		{
+			throw new NotImplementedException();
 		}
 	}
 }
