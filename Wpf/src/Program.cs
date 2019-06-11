@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using SharpFuzz.Common;
 
 namespace Wpf.Fuzz
@@ -20,56 +21,57 @@ namespace Wpf.Fuzz
 				Trace.SharedMem = ptr;
 				Trace.OnBranch = (id, name) => { };
 
-				var window = new Window { Title = "Fuzzing WPF" };
-				var application = new Application();
-				var dispacher = application.Dispatcher;
-
-				window.Loaded += (sender, args) =>
+				for (int i = 1; i < 100; ++i)
 				{
-					Task.Run(() =>
+					var trace = new List<(int, string)>();
+
+					SharpFuzz.Common.Trace.OnBranch = (id, name) =>
 					{
-						var trace = new List<(int, string)>();
-
-						SharpFuzz.Common.Trace.OnBranch = (id, name) =>
+						lock (sharedMem)
 						{
-							lock (sharedMem)
-							{
-								trace.Add((id, name));
-							}
-						};
-
-						for (int i = 1; i < 100; ++i)
-						{
-							sharedMem.AsSpan().Clear();
-							trace.Clear();
-
-							dispacher.Invoke(() =>
-							{
-								window.Content = new TextBlock { Text = $"Iteration {i}" };
-							});
-
-							List<(int, string)> copy;
-
-							lock (sharedMem)
-							{
-								copy = new List<(int, string)>(trace);
-								trace.Clear();
-							}
-
-							using (var log = File.CreateText($"{i}.txt"))
-							{
-								foreach (var (id, name) in copy)
-								{
-									log.WriteLine($"{id}: {name}");
-								}
-							}
+							trace.Add((id, name));
 						}
+					};
 
-						dispacher.Invoke(window.Close);
+					sharedMem.AsSpan().Clear();
+					trace.Clear();
+
+					var thread = new Thread(() =>
+					{
+						var dispatcher = Dispatcher.CurrentDispatcher;
+						var context = new DispatcherSynchronizationContext(dispatcher);
+
+						SynchronizationContext.SetSynchronizationContext(context);
+
+						Window window = new Window { Content = new TextBlock { Text = $"Iteration {i}" } };
+						window.Loaded += (sender, args) => dispatcher.BeginInvokeShutdown(DispatcherPriority.Background);
+
+						window.Show();
+						Dispatcher.Run();
 					});
-				};
 
-				application.Run(window);
+					thread.SetApartmentState(ApartmentState.STA);
+					thread.IsBackground = true;
+
+					thread.Start();
+					thread.Join();
+
+					List<(int, string)> copy;
+
+					lock (sharedMem)
+					{
+						copy = new List<(int, string)>(trace);
+						trace.Clear();
+					}
+
+					using (var log = File.CreateText($"{i}.txt"))
+					{
+						foreach (var (id, name) in copy)
+						{
+							log.WriteLine($"{id}: {name}");
+						}
+					}
+				}
 			}
 		}
 	}
