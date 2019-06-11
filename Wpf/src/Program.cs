@@ -21,7 +21,7 @@ namespace Wpf.Fuzz
 				Trace.SharedMem = ptr;
 				Trace.OnBranch = (id, name) => { };
 
-				for (int i = 1; i < 100; ++i)
+				for (int i = 1; i < 30; ++i)
 				{
 					var trace = new List<(int, string)>();
 
@@ -43,8 +43,8 @@ namespace Wpf.Fuzz
 
 						SynchronizationContext.SetSynchronizationContext(context);
 
-						Window window = new Window { Content = new TextBlock { Text = $"Iteration {i}" } };
-						window.Loaded += (sender, args) => dispatcher.BeginInvokeShutdown(DispatcherPriority.Background);
+						Window window = new Window { Content = new TextBlock { Text = $"Iteration {i:00}" } };
+						window.Loaded += (sender, args) => dispatcher.BeginInvokeShutdown(DispatcherPriority.ApplicationIdle);
 
 						window.Show();
 						Dispatcher.Run();
@@ -64,7 +64,7 @@ namespace Wpf.Fuzz
 						trace.Clear();
 					}
 
-					using (var log = File.CreateText($"{i}.txt"))
+					using (var log = File.CreateText($"{i:00}.txt"))
 					{
 						foreach (var (id, name) in copy)
 						{
