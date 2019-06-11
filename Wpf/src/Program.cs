@@ -9,7 +9,6 @@ namespace Wpf.Fuzz
 {
 	public static class Program
 	{
-		[STAThread]
 		public static unsafe void Main()
 		{
 			var sharedMem = new byte[65536];
