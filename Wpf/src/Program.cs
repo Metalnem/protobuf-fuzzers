@@ -21,7 +21,7 @@ namespace Wpf.Fuzz
 				Trace.SharedMem = ptr;
 				Trace.OnBranch = (id, name) => { };
 
-				for (int i = 1; i < 30; ++i)
+				for (int i = 1; i <= 30; ++i)
 				{
 					var trace = new List<(int, string)>();
 
