@@ -1,0 +1,6 @@
+syntax = "proto3";
+package layout;
+
+message TextBlock {
+  string text = 1;
+}

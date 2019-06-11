@@ -7,8 +7,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.8.0" />
     <PackageReference Include="Microsoft.WindowsDesktop.App" Version="3.0.0-preview4-27622-07" />
     <PackageReference Include="SharpFuzz" Version="1.6.0" />
+
+    <PackageReference Include="Grpc.Tools" Version="1.21.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+
+    <Protobuf Include="../build/layout.proto" />
   </ItemGroup>
 
   <PropertyGroup>
