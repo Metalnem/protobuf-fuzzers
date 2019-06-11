@@ -43,8 +43,16 @@ namespace Wpf.Fuzz
 
 						SynchronizationContext.SetSynchronizationContext(context);
 
-						Window window = new Window { Content = new TextBlock { Text = $"Iteration {i:00}" } };
-						window.Loaded += (sender, args) => dispatcher.BeginInvokeShutdown(DispatcherPriority.ApplicationIdle);
+						var window = new Window
+						{
+							Content = new TextBlock { Text = $"Iteration {i:00}" },
+							ShowInTaskbar = false
+						};
+
+						window.Loaded += (sender, args) =>
+						{
+							dispatcher.BeginInvokeShutdown(DispatcherPriority.ApplicationIdle);
+						};
 
 						window.Show();
 						Dispatcher.Run();
