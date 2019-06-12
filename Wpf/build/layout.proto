@@ -10,6 +10,14 @@ message TextBlock {
   string text = 1;
 }
 
+message TextBox {
+  string text = 1;
+}
+
+message Button {
+  FrameworkElement content = 1;
+}
+
 message StackPanel {
   Orientation orientation = 1;
   repeated FrameworkElement children = 2;
@@ -18,6 +26,8 @@ message StackPanel {
 message FrameworkElement {
   oneof frameworkelement_oneof {
     TextBlock text_block = 1;
-    StackPanel stack_panel = 2;
+    TextBox text_box = 2;
+    Button button = 3;
+    StackPanel stack_panel = 4;
   }
 }
