@@ -95,15 +95,15 @@ namespace Wpf.Fuzz
 				{
 					sharedMem.AsSpan().Clear();
 
-					var proto = Layout.FrameworkElement.Parser.ParseFrom(stream);
-					var element = ProtoToElement(proto);
-
 					var thread = new Thread(() =>
 					{
 						var dispatcher = Dispatcher.CurrentDispatcher;
 						var context = new DispatcherSynchronizationContext(dispatcher);
 
 						SynchronizationContext.SetSynchronizationContext(context);
+
+						var proto = Layout.FrameworkElement.Parser.ParseFrom(stream);
+						var element = ProtoToElement(proto);
 
 						var window = new Window
 						{
