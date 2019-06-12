@@ -13,7 +13,7 @@ namespace Wpf.Fuzz
 {
 	public static class Program
 	{
-		private const int MapSize = 65_536;
+		private const int MapSize = 65536;
 		private const int Port = 7362;
 
 		public static void Main(string[] args)
@@ -141,13 +141,7 @@ namespace Wpf.Fuzz
 
 		private static FrameworkElement ProtoToElement(Layout.FrameworkElement element)
 		{
-			switch (element.FrameworkelementOneofCase)
-			{
-				case Layout.FrameworkElement.FrameworkelementOneofOneofCase.TextBlock:
-					return new TextBlock { Text = element.TextBlock.Text };
-			}
-
-			return null;
+			return new TextBlock { Text = "Hello, world!" };
 		}
 	}
 }
