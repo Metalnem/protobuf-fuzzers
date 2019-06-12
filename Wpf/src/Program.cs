@@ -141,7 +141,39 @@ namespace Wpf.Fuzz
 
 		private static FrameworkElement ProtoToElement(Layout.FrameworkElement element)
 		{
-			return new TextBlock { Text = "Hello, world!" };
+			if (element == null)
+			{
+				return null;
+			}
+
+			switch (element.FrameworkelementOneofCase)
+			{
+				case Layout.FrameworkElement.FrameworkelementOneofOneofCase.TextBlock:
+					return new TextBlock { Text = element.TextBlock.Text };
+				case Layout.FrameworkElement.FrameworkelementOneofOneofCase.StackPanel:
+					var stackPanel = new StackPanel();
+
+					if (element.StackPanel.Orientation == Layout.Orientation.Vertical)
+					{
+						stackPanel.Orientation = Orientation.Vertical;
+					}
+					else
+					{
+						stackPanel.Orientation = Orientation.Horizontal;
+					}
+
+					foreach (var child in element.StackPanel.Children)
+					{
+						if (ProtoToElement(child) is FrameworkElement result)
+						{
+							stackPanel.Children.Add(result);
+						}
+					}
+
+					return stackPanel;
+			}
+
+			return null;
 		}
 	}
 }

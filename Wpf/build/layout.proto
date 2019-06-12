@@ -1,12 +1,23 @@
 syntax = "proto3";
 package layout;
 
+enum Orientation {
+  HORIZONTAL = 0;
+  VERTICAL = 1;
+}
+
 message TextBlock {
   string text = 1;
+}
+
+message StackPanel {
+  Orientation orientation = 1;
+  repeated FrameworkElement children = 2;
 }
 
 message FrameworkElement {
   oneof frameworkelement_oneof {
     TextBlock text_block = 1;
+    StackPanel stack_panel = 2;
   }
 }
