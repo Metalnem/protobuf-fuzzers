@@ -55,9 +55,9 @@ namespace Wpf.Fuzz
 					return;
 				}
 
-				proto.WriteTo(stream);
+				proto.WriteDelimitedTo(stream);
 
-				var response = Response.Parser.ParseFrom(stream);
+				var response = Response.Parser.ParseDelimitedFrom(stream);
 				var sharedMem = new Span<byte>(Trace.SharedMem, MapSize);
 
 				response.Trace.Span.CopyTo(sharedMem);
@@ -102,7 +102,7 @@ namespace Wpf.Fuzz
 
 						SynchronizationContext.SetSynchronizationContext(context);
 
-						var proto = Layout.FrameworkElement.Parser.ParseFrom(stream);
+						var proto = Layout.FrameworkElement.Parser.ParseDelimitedFrom(stream);
 						var element = ProtoToElement(proto);
 
 						var window = new Window
@@ -134,7 +134,7 @@ namespace Wpf.Fuzz
 						Trace = ByteString.CopyFrom(sharedMem)
 					};
 
-					response.WriteTo(stream);
+					response.WriteDelimitedTo(stream);
 				}
 			}
 		}
