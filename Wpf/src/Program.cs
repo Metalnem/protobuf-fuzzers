@@ -3,7 +3,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Threading;
 using Google.Protobuf;
 using SharpFuzz;
@@ -103,7 +102,7 @@ namespace Wpf.Fuzz
 						SynchronizationContext.SetSynchronizationContext(context);
 
 						var proto = Layout.FrameworkElement.Parser.ParseDelimitedFrom(stream);
-						var element = ProtoToElement(proto);
+						var element = Converter.Convert(proto);
 
 						var window = new Window
 						{
@@ -137,43 +136,6 @@ namespace Wpf.Fuzz
 					response.WriteDelimitedTo(stream);
 				}
 			}
-		}
-
-		private static FrameworkElement ProtoToElement(Layout.FrameworkElement element)
-		{
-			if (element == null)
-			{
-				return null;
-			}
-
-			switch (element.FrameworkelementOneofCase)
-			{
-				case Layout.FrameworkElement.FrameworkelementOneofOneofCase.TextBlock:
-					return new TextBlock { Text = element.TextBlock.Text };
-				case Layout.FrameworkElement.FrameworkelementOneofOneofCase.StackPanel:
-					var stackPanel = new StackPanel();
-
-					if (element.StackPanel.Orientation == Layout.Orientation.Vertical)
-					{
-						stackPanel.Orientation = Orientation.Vertical;
-					}
-					else
-					{
-						stackPanel.Orientation = Orientation.Horizontal;
-					}
-
-					foreach (var child in element.StackPanel.Children)
-					{
-						if (ProtoToElement(child) is FrameworkElement result)
-						{
-							stackPanel.Children.Add(result);
-						}
-					}
-
-					return stackPanel;
-			}
-
-			return null;
 		}
 	}
 }
