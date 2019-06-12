@@ -52,6 +52,5 @@ WORKDIR /app
 
 COPY --from=cpp-env /app/libprotobuf-mutator/build/src/libfuzzer-proto-dotnet/libfuzzer-proto-dotnet ./
 COPY --from=csharp-env /app/src/out ./
-RUN mkdir corpus
 
 ENTRYPOINT ["./libfuzzer-proto-dotnet", "-timeout=5", "--target_path=./Wpf.Fuzz", "--target_arg=--local", "corpus"]
