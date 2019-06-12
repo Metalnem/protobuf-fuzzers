@@ -44,7 +44,7 @@ COPY src/*.csproj ./
 RUN dotnet restore -r linux-x64
 
 COPY src/*.cs ./
-COPY build/layout.proto /app/build/
+COPY build/layout.proto build/response.proto /app/build/
 RUN dotnet publish -r linux-x64 --no-restore -c release -o out
 
 FROM mcr.microsoft.com/dotnet/core/runtime:3.0
