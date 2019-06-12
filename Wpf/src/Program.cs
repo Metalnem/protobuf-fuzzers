@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
@@ -11,6 +13,7 @@ namespace Wpf.Fuzz
 	public static class Program
 	{
 		private const int MapSize = 65_536;
+		private const int Port = 7362;
 
 		public static void Main(string[] args)
 		{
@@ -24,65 +27,96 @@ namespace Wpf.Fuzz
 
 		private static void Local()
 		{
-			Fuzzer.LibFuzzer.Run(span =>
+			using (var client = new TcpClient())
 			{
-				Layout.FrameworkElement element;
+				var address = IPAddress.Parse("10.211.55.3");
+				client.Connect(address, Port);
 
-				try
+				using (var stream = client.GetStream())
 				{
-					element = Layout.FrameworkElement.Parser.ParseFrom(span.ToArray());
-				}
-				catch
-				{
+					stream.WriteByte(1);
+					Console.WriteLine(stream.ReadByte());
 					return;
 				}
-			});
+			}
+
+			// Fuzzer.LibFuzzer.Run(span =>
+			// {
+			// 	Layout.FrameworkElement element;
+
+			// 	try
+			// 	{
+			// 		element = Layout.FrameworkElement.Parser.ParseFrom(span.ToArray());
+			// 	}
+			// 	catch
+			// 	{
+			// 		return;
+			// 	}
+			// });
 		}
 
 		private static unsafe void Remote()
 		{
-			var sharedMem = new byte[MapSize];
+			var listener = new TcpListener(IPAddress.Any, Port);
+			listener.Start();
 
-			fixed (byte* ptr = sharedMem)
+			try
 			{
-				Trace.SharedMem = ptr;
-
-				for (int i = 1; i <= 30; ++i)
+				using (var client = listener.AcceptTcpClient())
+				using (var stream = client.GetStream())
 				{
-					sharedMem.AsSpan().Clear();
-
-					var thread = new Thread(() =>
-					{
-						var dispatcher = Dispatcher.CurrentDispatcher;
-						var context = new DispatcherSynchronizationContext(dispatcher);
-
-						SynchronizationContext.SetSynchronizationContext(context);
-
-						var window = new Window
-						{
-							Content = new TextBlock { Text = $"Iteration {i:00}" },
-							IsHitTestVisible = false,
-							ShowInTaskbar = false,
-							WindowStyle = WindowStyle.None,
-							WindowStartupLocation = WindowStartupLocation.CenterScreen
-						};
-
-						window.Loaded += (sender, _) =>
-						{
-							dispatcher.BeginInvokeShutdown(DispatcherPriority.ApplicationIdle);
-						};
-
-						window.Show();
-						Dispatcher.Run();
-					});
-
-					thread.SetApartmentState(ApartmentState.STA);
-					thread.IsBackground = true;
-
-					thread.Start();
-					thread.Join();
+					Console.WriteLine(stream.ReadByte());
+					stream.WriteByte(2);
+					return;
 				}
 			}
+			finally
+			{
+				listener.Stop();
+			}
+
+			// var sharedMem = new byte[MapSize];
+
+			// fixed (byte* ptr = sharedMem)
+			// {
+			// 	Trace.SharedMem = ptr;
+
+			// 	for (int i = 1; i <= 30; ++i)
+			// 	{
+			// 		sharedMem.AsSpan().Clear();
+
+			// 		var thread = new Thread(() =>
+			// 		{
+			// 			var dispatcher = Dispatcher.CurrentDispatcher;
+			// 			var context = new DispatcherSynchronizationContext(dispatcher);
+
+			// 			SynchronizationContext.SetSynchronizationContext(context);
+
+			// 			var window = new Window
+			// 			{
+			// 				Content = new TextBlock { Text = $"Iteration {i:00}" },
+			// 				IsHitTestVisible = false,
+			// 				ShowInTaskbar = false,
+			// 				WindowStyle = WindowStyle.None,
+			// 				WindowStartupLocation = WindowStartupLocation.CenterScreen
+			// 			};
+
+			// 			window.Loaded += (sender, _) =>
+			// 			{
+			// 				dispatcher.BeginInvokeShutdown(DispatcherPriority.ApplicationIdle);
+			// 			};
+
+			// 			window.Show();
+			// 			Dispatcher.Run();
+			// 		});
+
+			// 		thread.SetApartmentState(ApartmentState.STA);
+			// 		thread.IsBackground = true;
+
+			// 		thread.Start();
+			// 		thread.Join();
+			// 	}
+			// }
 		}
 
 		private static FrameworkElement ProtoToElement(Layout.FrameworkElement element)
