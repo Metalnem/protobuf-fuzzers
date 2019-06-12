@@ -18,6 +18,22 @@ message Button {
   FrameworkElement content = 1;
 }
 
+message ListBoxItem {
+  FrameworkElement content = 1;
+}
+
+message ListBox {
+  repeated ListBoxItem children = 1;
+}
+
+message TreeViewItem {
+  repeated ListBoxItem children = 1;
+}
+
+message TreeView {
+  repeated TreeViewItem children = 1;
+}
+
 message StackPanel {
   Orientation orientation = 1;
   repeated FrameworkElement children = 2;
@@ -28,6 +44,10 @@ message FrameworkElement {
     TextBlock text_block = 1;
     TextBox text_box = 2;
     Button button = 3;
-    StackPanel stack_panel = 4;
+    ListBoxItem list_box_item = 4;
+    ListBox list_box = 5;
+    TreeViewItem tree_view_item = 6;
+    TreeView tree_view = 7;
+    StackPanel stack_panel = 8;
   }
 }
