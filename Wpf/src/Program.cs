@@ -5,6 +5,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
+using Google.Protobuf;
 using SharpFuzz;
 using SharpFuzz.Common;
 
@@ -34,28 +35,36 @@ namespace Wpf.Fuzz
 
 				using (var stream = client.GetStream())
 				{
-					stream.WriteByte(1);
-					Console.WriteLine(stream.ReadByte());
-					return;
+					FuzzLocal(stream);
 				}
 			}
-
-			// Fuzzer.LibFuzzer.Run(span =>
-			// {
-			// 	Layout.FrameworkElement element;
-
-			// 	try
-			// 	{
-			// 		element = Layout.FrameworkElement.Parser.ParseFrom(span.ToArray());
-			// 	}
-			// 	catch
-			// 	{
-			// 		return;
-			// 	}
-			// });
 		}
 
-		private static unsafe void Remote()
+		private static unsafe void FuzzLocal(NetworkStream stream)
+		{
+			Fuzzer.LibFuzzer.Run(span =>
+			{
+				Layout.FrameworkElement proto;
+
+				try
+				{
+					proto = Layout.FrameworkElement.Parser.ParseFrom(span.ToArray());
+				}
+				catch
+				{
+					return;
+				}
+
+				proto.WriteTo(stream);
+
+				var response = Response.Parser.ParseFrom(stream);
+				var sharedMem = new Span<byte>(Trace.SharedMem, MapSize);
+
+				response.Trace.Span.CopyTo(sharedMem);
+			});
+		}
+
+		private static void Remote()
 		{
 			var listener = new TcpListener(IPAddress.Any, Port);
 			listener.Start();
@@ -65,63 +74,80 @@ namespace Wpf.Fuzz
 				using (var client = listener.AcceptTcpClient())
 				using (var stream = client.GetStream())
 				{
-					Console.WriteLine(stream.ReadByte());
-					stream.WriteByte(2);
-					return;
+					FuzzRemote(stream);
 				}
 			}
 			finally
 			{
 				listener.Stop();
 			}
+		}
 
-			// var sharedMem = new byte[MapSize];
+		private static unsafe void FuzzRemote(NetworkStream stream)
+		{
+			var sharedMem = new byte[MapSize];
 
-			// fixed (byte* ptr = sharedMem)
-			// {
-			// 	Trace.SharedMem = ptr;
+			fixed (byte* ptr = sharedMem)
+			{
+				Trace.SharedMem = ptr;
 
-			// 	for (int i = 1; i <= 30; ++i)
-			// 	{
-			// 		sharedMem.AsSpan().Clear();
+				for (; ; )
+				{
+					sharedMem.AsSpan().Clear();
 
-			// 		var thread = new Thread(() =>
-			// 		{
-			// 			var dispatcher = Dispatcher.CurrentDispatcher;
-			// 			var context = new DispatcherSynchronizationContext(dispatcher);
+					var proto = Layout.FrameworkElement.Parser.ParseFrom(stream);
+					var element = ProtoToElement(proto);
 
-			// 			SynchronizationContext.SetSynchronizationContext(context);
+					var thread = new Thread(() =>
+					{
+						var dispatcher = Dispatcher.CurrentDispatcher;
+						var context = new DispatcherSynchronizationContext(dispatcher);
 
-			// 			var window = new Window
-			// 			{
-			// 				Content = new TextBlock { Text = $"Iteration {i:00}" },
-			// 				IsHitTestVisible = false,
-			// 				ShowInTaskbar = false,
-			// 				WindowStyle = WindowStyle.None,
-			// 				WindowStartupLocation = WindowStartupLocation.CenterScreen
-			// 			};
+						SynchronizationContext.SetSynchronizationContext(context);
 
-			// 			window.Loaded += (sender, _) =>
-			// 			{
-			// 				dispatcher.BeginInvokeShutdown(DispatcherPriority.ApplicationIdle);
-			// 			};
+						var window = new Window
+						{
+							Content = element,
+							IsHitTestVisible = false,
+							ShowInTaskbar = false,
+							WindowStyle = WindowStyle.None,
+							WindowStartupLocation = WindowStartupLocation.CenterScreen
+						};
 
-			// 			window.Show();
-			// 			Dispatcher.Run();
-			// 		});
+						window.Loaded += (sender, _) =>
+						{
+							dispatcher.BeginInvokeShutdown(DispatcherPriority.ApplicationIdle);
+						};
 
-			// 		thread.SetApartmentState(ApartmentState.STA);
-			// 		thread.IsBackground = true;
+						window.Show();
+						Dispatcher.Run();
+					});
 
-			// 		thread.Start();
-			// 		thread.Join();
-			// 	}
-			// }
+					thread.SetApartmentState(ApartmentState.STA);
+					thread.IsBackground = true;
+
+					thread.Start();
+					thread.Join();
+
+					var response = new Response
+					{
+						Trace = ByteString.CopyFrom(sharedMem)
+					};
+
+					response.WriteTo(stream);
+				}
+			}
 		}
 
 		private static FrameworkElement ProtoToElement(Layout.FrameworkElement element)
 		{
-			throw new NotImplementedException();
+			switch (element.FrameworkelementOneofCase)
+			{
+				case Layout.FrameworkElement.FrameworkelementOneofOneofCase.TextBlock:
+					return new TextBlock { Text = element.TextBlock.Text };
+			}
+
+			return null;
 		}
 	}
 }

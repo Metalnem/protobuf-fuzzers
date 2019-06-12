@@ -17,6 +17,7 @@
     </PackageReference>
 
     <Protobuf Include="../build/layout.proto" />
+	<Protobuf Include="../build/response.proto" />
   </ItemGroup>
 
   <PropertyGroup>
