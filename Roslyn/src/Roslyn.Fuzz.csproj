@@ -8,7 +8,7 @@
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.7.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.1.0" />
-    <PackageReference Include="SharpFuzz" Version="1.6.0" />
+    <PackageReference Include="SharpFuzz" Version="1.6.1" />
 
     <PackageReference Include="Grpc.Tools" Version="1.21.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
